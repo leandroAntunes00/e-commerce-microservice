@@ -1,0 +1,45 @@
+# .gitignore para projeto .NET
+
+# Build artifacts
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.userprefs
+
+# Rider
+.idea/
+*.sln.iml
+
+# ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# NuGet packages
+*.nupkg
+
+# Azure Functions local settings
+local.settings.json
+
+# Logs and test results
+*.log
+TestResults/
+
+# VS Code
+.vscode/
+
+# Publish
+publish/
+
+# Coverage
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# Secrets
+secrets.json
+.env

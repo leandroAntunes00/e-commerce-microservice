@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using SalesService.Data;
+using SalesService.Services;
+using Messaging;
 
 namespace SalesService;
 
@@ -53,6 +55,20 @@ public class Program
                        .AllowAnyHeader();
             });
         });
+
+        // Add RabbitMQ configuration
+        builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
+        builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+
+        // Add HttpClient for service-to-service communication
+        builder.Services.AddHttpClient("StockService", client =>
+        {
+            client.BaseAddress = new Uri(builder.Configuration["Services:StockService"] ?? "http://localhost:5126");
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+
+        // Register StockServiceClient
+        builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
 
         var app = builder.Build();
 

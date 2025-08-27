@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using StockService.Models;
 using StockService.Data;
 using System.ComponentModel.DataAnnotations;
+using Messaging;
+using Messaging.Events;
 
 namespace StockService.Controllers;
 
@@ -11,10 +13,12 @@ namespace StockService.Controllers;
 public class StockController : ControllerBase
 {
     private readonly StockDbContext _context;
+    private readonly IMessagePublisher _messagePublisher;
 
-    public StockController(StockDbContext context)
+    public StockController(StockDbContext context, IMessagePublisher messagePublisher)
     {
         _context = context;
+        _messagePublisher = messagePublisher;
     }
 
     // GET: api/stock/products - Lista todos os produtos ativos (público)
@@ -249,10 +253,24 @@ public class StockController : ControllerBase
                 });
             }
 
+            var previousStock = product.StockQuantity;
             product.StockQuantity = request.StockQuantity;
             product.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            // Publicar evento de atualização de estoque
+            var stockUpdatedEvent = new StockUpdatedEvent
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                PreviousStock = previousStock,
+                NewStock = product.StockQuantity,
+                Operation = "Updated",
+                UpdatedAt = product.UpdatedAt ?? DateTime.UtcNow
+            };
+
+            await _messagePublisher.PublishAsync(stockUpdatedEvent);
 
             return Ok(new ProductResponse
             {

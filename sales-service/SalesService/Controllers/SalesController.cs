@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SalesService.Data;
 using SalesService.Models;
+using SalesService.Services;
+using Messaging;
+using Messaging.Events;
 using System.Security.Claims;
 
 namespace SalesService.Controllers;
@@ -13,10 +16,14 @@ namespace SalesService.Controllers;
 public class SalesController : ControllerBase
 {
     private readonly SalesDbContext _context;
+    private readonly IStockServiceClient _stockServiceClient;
+    private readonly IMessagePublisher _messagePublisher;
 
-    public SalesController(SalesDbContext context)
+    public SalesController(SalesDbContext context, IStockServiceClient stockServiceClient, IMessagePublisher messagePublisher)
     {
         _context = context;
+        _stockServiceClient = stockServiceClient;
+        _messagePublisher = messagePublisher;
     }
 
     // GET: api/sales/orders - Lista pedidos do usuário logado
@@ -94,6 +101,20 @@ public class SalesController : ControllerBase
         {
             var userId = GetCurrentUserId();
 
+            // Verificar estoque para todos os itens antes de criar o pedido
+            foreach (var item in request.Items)
+            {
+                var stockAvailable = await _stockServiceClient.CheckStockAvailability(item.ProductId, item.Quantity);
+                if (!stockAvailable)
+                {
+                    return BadRequest(new
+                    {
+                        Success = false,
+                        Message = $"Insufficient stock for product {item.ProductName} (ID: {item.ProductId}). Requested: {item.Quantity}"
+                    });
+                }
+            }
+
             // Calcular o total
             decimal totalAmount = 0;
             var orderItems = new List<OrderItem>();
@@ -124,6 +145,24 @@ public class SalesController : ControllerBase
 
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
+
+            // Publicar evento de pedido criado
+            var orderCreatedEvent = new OrderCreatedEvent
+            {
+                OrderId = order.Id,
+                UserId = userId,
+                Items = order.Items.Select(i => new OrderItemEvent
+                {
+                    ProductId = i.ProductId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice
+                }).ToList(),
+                TotalAmount = order.TotalAmount,
+                CreatedAt = order.CreatedAt
+            };
+
+            await _messagePublisher.PublishAsync(orderCreatedEvent);
 
             return CreatedAtAction(nameof(GetOrder), new { id = order.Id },
                 new

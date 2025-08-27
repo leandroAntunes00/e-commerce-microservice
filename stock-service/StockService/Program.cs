@@ -4,6 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using StockService.Data;
 using StockService.Controllers;
+using StockService.Services;
+using Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +41,14 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("ADMIN"));
     options.AddPolicy("UserOrAdmin", policy => policy.RequireRole("USER", "ADMIN"));
 });
+
+// Configure RabbitMQ
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
+builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+builder.Services.AddSingleton<IMessageConsumer, RabbitMqConsumer>();
+
+// Register background service for consuming order events
+builder.Services.AddHostedService<OrderEventConsumerService>();
 
 var app = builder.Build();
 
