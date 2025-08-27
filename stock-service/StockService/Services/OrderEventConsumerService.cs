@@ -25,45 +25,68 @@ public class OrderEventConsumerService : BackgroundService
     {
         _logger.LogInformation("Iniciando consumidor de eventos de pedido...");
 
-        using var consumer = new RabbitMqConsumer(_rabbitMqSettings, _logger);
+        // Criar consumer com retry para não derrubar o host se RabbitMQ ainda não estiver pronto
+        IMessageConsumer? consumer = null;
+
+        while (!stoppingToken.IsCancellationRequested && consumer == null)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var consumerLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Messaging.RabbitMqConsumer>>();
+                // Tentar instanciar diretamente o consumer; se falhar, aguardar e tentar novamente
+                consumer = new Messaging.RabbitMqConsumer(_rabbitMqSettings, consumerLogger);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Não foi possível conectar ao RabbitMQ. Tentando novamente em 2s...");
+                try { await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken); } catch { break; }
+            }
+        }
+
+        if (consumer == null)
+        {
+            _logger.LogError("Não foi possível inicializar o consumidor de eventos de pedido; saindo.");
+            return;
+        }
 
         // Consumir eventos OrderCreated
         await consumer.StartConsumingAsync(
-            queueName: $"{_rabbitMqSettings.QueuePrefix}order_created",
-            messageHandler: async (message) =>
-            {
-                try
+                queueName: $"{_rabbitMqSettings.QueuePrefix}order_created",
+                messageHandler: async (message) =>
                 {
-                    var orderEvent = System.Text.Json.JsonSerializer.Deserialize<OrderCreatedEvent>(message);
-                    if (orderEvent != null)
+                    try
                     {
-                        await ProcessOrderCreatedEvent(orderEvent);
+                        var orderEvent = System.Text.Json.JsonSerializer.Deserialize<OrderCreatedEvent>(message);
+                        if (orderEvent != null)
+                        {
+                            await ProcessOrderCreatedEvent(orderEvent);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Erro ao processar evento OrderCreatedEvent");
-                }
-            });
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Erro ao processar evento OrderCreatedEvent");
+                    }
+                });
 
         // Consumir eventos OrderCancelled
         await consumer.StartConsumingAsync(
-            queueName: $"{_rabbitMqSettings.QueuePrefix}order_cancelled",
-            messageHandler: async (message) =>
-            {
-                try
+                queueName: $"{_rabbitMqSettings.QueuePrefix}order_cancelled",
+                messageHandler: async (message) =>
                 {
-                    var orderEvent = System.Text.Json.JsonSerializer.Deserialize<OrderCancelledEvent>(message);
-                    if (orderEvent != null)
+                    try
                     {
-                        await ProcessOrderCancelledEvent(orderEvent);
+                        var orderEvent = System.Text.Json.JsonSerializer.Deserialize<OrderCancelledEvent>(message);
+                        if (orderEvent != null)
+                        {
+                            await ProcessOrderCancelledEvent(orderEvent);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Erro ao processar evento OrderCancelledEvent");
-                }
-            });
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Erro ao processar evento OrderCancelledEvent");
+                    }
+                });
 
         // Aguardar até o serviço ser parado
         await Task.Delay(Timeout.Infinite, stoppingToken);

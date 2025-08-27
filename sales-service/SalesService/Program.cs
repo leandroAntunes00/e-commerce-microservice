@@ -6,6 +6,7 @@ using System.Text;
 using SalesService.Data;
 using SalesService.Services;
 using Messaging;
+using Microsoft.Extensions.Options;
 
 namespace SalesService;
 
@@ -56,9 +57,11 @@ public class Program
             });
         });
 
-        // Add RabbitMQ configuration
-        builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
-        builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+    // Add RabbitMQ configuration
+    builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
+    // Expose the strongly-typed RabbitMqSettings instance so types that expect RabbitMqSettings (not IOptions<>) can be resolved
+    builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value);
+    builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
 
         // Add HttpClient for service-to-service communication
         builder.Services.AddHttpClient("StockService", client =>

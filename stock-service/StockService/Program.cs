@@ -44,6 +44,8 @@ builder.Services.AddAuthorization(options =>
 
 // Configure RabbitMQ
 builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
+// Expor a instância concreta para compatibilidade com tipos que consomem RabbitMqSettings diretamente
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RabbitMqSettings>>().Value);
 builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
 builder.Services.AddSingleton<IMessageConsumer, RabbitMqConsumer>();
 
