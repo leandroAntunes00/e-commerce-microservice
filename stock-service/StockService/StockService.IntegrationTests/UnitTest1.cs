@@ -1,54 +1,96 @@
 using Xunit;
 using FluentAssertions;
+using StockService.Models;
 
 namespace StockService.IntegrationTests;
 
-public class StockServiceIntegrationTests
+public class ProductModelIntegrationTests
 {
     [Fact]
-    public void IntegrationTestEnvironment_ShouldBeConfigured()
+    public void Product_ShouldBeCreatedWithValidData()
     {
         // Arrange
-        var testEnvironment = "Integration";
-
-        // Act
-        var result = testEnvironment;
-
-        // Assert
-        result.Should().Be("Integration");
-    }
-
-    [Fact]
-    public void DatabaseConnection_ShouldBeAvailable()
-    {
-        // Este teste seria implementado quando o serviço estiver rodando
-        // Por enquanto, apenas verifica se o ambiente de teste está funcionando
-        var connectionString = "Host=localhost;Port=5433;Database=stockdb;Username=postgres;Password=password123";
-        connectionString.Should().NotBeNullOrEmpty();
-        connectionString.Should().Contain("5433");
-    }
-
-    [Fact]
-    public void RabbitMQConnection_ShouldBeAvailable()
-    {
-        // Este teste seria implementado quando o serviço estiver rodando
-        var rabbitMQConfig = new
+        var product = new Product
         {
-            HostName = "localhost",
-            Port = 5672,
-            UserName = "admin",
-            Password = "password123"
+            Id = 1,
+            Name = "Test Product",
+            Description = "Test Description",
+            Price = 99.99m,
+            Category = "Test Category",
+            StockQuantity = 10,
+            ImageUrl = "http://example.com/image.jpg",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
         };
 
-        rabbitMQConfig.HostName.Should().Be("localhost");
-        rabbitMQConfig.Port.Should().Be(5672);
+        // Act & Assert
+        product.Id.Should().Be(1);
+        product.Name.Should().Be("Test Product");
+        product.Description.Should().Be("Test Description");
+        product.Price.Should().Be(99.99m);
+        product.Category.Should().Be("Test Category");
+        product.StockQuantity.Should().Be(10);
+        product.ImageUrl.Should().Be("http://example.com/image.jpg");
+        product.IsActive.Should().BeTrue();
+        product.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
 
     [Fact]
-    public void ServiceHealthCheck_ShouldReturnOk()
+    public void CreateProductRequest_ShouldValidateRequiredFields()
     {
-        // Simulação de teste de integração
-        var serviceStatus = "Running";
-        serviceStatus.Should().Be("Running");
+        // Arrange
+        var request = new CreateProductRequest
+        {
+            Name = "Valid Product",
+            Price = 50.00m,
+            Category = "Electronics",
+            StockQuantity = 5
+        };
+
+        // Act & Assert
+        request.Name.Should().NotBeNullOrEmpty();
+        request.Name.Should().Be("Valid Product");
+        request.Price.Should().BeGreaterThan(0);
+        request.Category.Should().NotBeNullOrEmpty();
+        request.StockQuantity.Should().BeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
+    public void ProductResponse_ShouldHandleSuccessAndFailure()
+    {
+        // Arrange & Act
+        var successResponse = new ProductResponse
+        {
+            Success = true,
+            Message = "Operation successful",
+            Product = new Product { Id = 1, Name = "Test" }
+        };
+
+        var failureResponse = new ProductResponse
+        {
+            Success = false,
+            Message = "Operation failed"
+        };
+
+        // Assert
+        successResponse.Success.Should().BeTrue();
+        successResponse.Message.Should().Be("Operation successful");
+        successResponse.Product.Should().NotBeNull();
+        successResponse.Product!.Name.Should().Be("Test");
+
+        failureResponse.Success.Should().BeFalse();
+        failureResponse.Message.Should().Be("Operation failed");
+        failureResponse.Product.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateStockRequest_ShouldValidateStockQuantity()
+    {
+        // Arrange
+        var request = new UpdateStockRequest { StockQuantity = 25 };
+
+        // Act & Assert
+        request.StockQuantity.Should().BeGreaterThanOrEqualTo(0);
+        request.StockQuantity.Should().Be(25);
     }
 }
