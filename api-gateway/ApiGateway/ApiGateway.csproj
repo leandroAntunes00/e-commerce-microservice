@@ -7,16 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.19" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-    <PackageReference Include="YARP.ReverseProxy" Version="2.3.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="ApiGateway.UnitTests\**" />
-    <Compile Remove="ApiGateway.IntegrationTests\**" />
-    <Compile Remove="ApiGateway.E2ETests\**" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.1.0" />
   </ItemGroup>
 
 </Project>
