@@ -34,6 +34,33 @@ public class Program
 
             // Adicionar documentação para as rotas proxy
             options.DocumentFilter<ProxyRoutesDocumentFilter>();
+
+            // Definição do esquema de segurança (JWT Bearer) para exibir o botão "Authorize"
+            options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Description = "Autenticação JWT via cabeçalho Authorization. Ex.: Bearer {seu_token_jwt}",
+                Name = "Authorization",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT"
+            });
+
+            // Exigir o esquema de segurança por padrão nas rotas
+            options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+            {
+                {
+                    new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                    {
+                        Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                        {
+                            Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    System.Array.Empty<string>()
+                }
+            });
         });
 
         // Add JWT Authentication

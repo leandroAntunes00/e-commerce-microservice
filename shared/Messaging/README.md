@@ -1,23 +1,29 @@
-# Biblioteca Messaging
+# Biblioteca de Mensageria (Messaging)
 
-Esta biblioteca fornece uma implementação simples e robusta para comunicação assíncrona entre microsserviços usando RabbitMQ.
+Esta biblioteca fornece uma abstração robusta e fácil de usar para comunicação assíncrona entre microsserviços utilizando RabbitMQ. Ela foi desenhada para simplificar a publicação e o consumo de eventos com boas práticas incorporadas.
 
 ## Funcionalidades
 
-- **Publicação de Eventos**: Permite publicar eventos para um exchange RabbitMQ
-- **Consumo de Mensagens**: Permite consumir mensagens de filas RabbitMQ
-- **Eventos Definidos**: Conjunto de eventos de domínio pré-definidos
-- **Configuração Flexível**: Configuração via appsettings.json
+- **Gerenciamento de Conexão Centralizado**: Utiliza uma conexão singleton para toda a aplicação, evitando a sobrecarga de múltiplas conexões.
+- **Publicação de Eventos Simplificada**: Interface `IMessagePublisher` para publicar eventos de forma fácil e consistente.
+- **Consumidores como Serviços de Background**: Classe base `QueueConsumerBackgroundService` para criar consumidores de fila como serviços hospedados (`IHostedService`), gerenciados pelo host da aplicação.
+- **Configuração via Injeção de Dependência**: Registro simplificado dos serviços da biblioteca no contêiner de DI com um único método de extensão.
+- **Tratamento de Erros (DLQ)**: Suporte automático a Dead Letter Queue (DLQ) para mensagens que falham no processamento.
+- **Eventos de Domínio Pré-definidos**: Um conjunto de eventos comuns para cenários de microsserviços.
 
 ## Configuração
 
-### 1. Adicionar referência ao projeto
+### 1. Adicionar Referência ao Projeto
+
+Adicione a referência ao projeto `Messaging` no seu arquivo `.csproj`:
 
 ```xml
 <ProjectReference Include="../../shared/Messaging/Messaging/Messaging.csproj" />
 ```
 
-### 2. Configurar RabbitMQ no appsettings.json
+### 2. Configurar o RabbitMQ no `appsettings.json`
+
+Adicione a seção de configuração do RabbitMQ. O `QueuePrefix` é usado para nomear as filas de forma padronizada (e.g., `sales.order_created`).
 
 ```json
 {
@@ -28,23 +34,33 @@ Esta biblioteca fornece uma implementação simples e robusta para comunicação
     "Password": "guest",
     "VirtualHost": "/",
     "ExchangeName": "microservices_exchange",
-    "QueuePrefix": "service_name_"
+    "QueuePrefix": "servicename."
   }
 }
 ```
 
-### 3. Registrar serviços no Program.cs
+### 3. Registrar Serviços no `Program.cs`
+
+Use o método de extensão `AddRabbitMqMessaging` para registrar todos os componentes necessários da biblioteca.
 
 ```csharp
 using Messaging;
 
-builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
-builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+var builder = WebApplication.CreateBuilder(args);
+
+// Adicionar serviços de mensageria
+builder.Services.AddRabbitMqMessaging(builder.Configuration);
+
+// ... outros serviços
+
+var app = builder.Build();
 ```
 
 ## Uso
 
 ### Publicação de Eventos
+
+Injete `IMessagePublisher` em seus controllers ou serviços para publicar eventos.
 
 ```csharp
 public class MyController : ControllerBase
@@ -57,26 +73,17 @@ public class MyController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
+    public async Task<IActionResult> CreateOrder([FromBody] Order newOrder)
     {
-        // Lógica de criação do pedido...
+        // ... lógica para salvar o pedido ...
 
-        // Publicar evento
         var orderCreatedEvent = new OrderCreatedEvent
         {
-            OrderId = order.Id,
-            UserId = userId,
-            Items = order.Items.Select(i => new OrderItemEvent
-            {
-                ProductId = i.ProductId,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice
-            }).ToList(),
-            TotalAmount = order.TotalAmount,
-            CreatedAt = order.CreatedAt
+            OrderId = newOrder.Id,
+            // ... outros dados
         };
 
+        // Publica o evento. A routing key será 'ordercreated'.
         await _messagePublisher.PublishAsync(orderCreatedEvent);
 
         return Ok();
@@ -84,65 +91,64 @@ public class MyController : ControllerBase
 }
 ```
 
-### Eventos Disponíveis
+### Consumo de Eventos
 
-#### OrderCreatedEvent
-Disparado quando um novo pedido é criado.
-- `OrderId`: ID do pedido
-- `UserId`: ID do usuário
-- `Items`: Lista de itens do pedido
-- `TotalAmount`: Valor total
-- `CreatedAt`: Data de criação
+Para consumir eventos, crie uma classe que herde de `QueueConsumerBackgroundService` e a registre como um serviço hospedado.
 
-#### OrderCancelledEvent
-Disparado quando um pedido é cancelado.
-- `OrderId`: ID do pedido
-- `UserId`: ID do usuário
-- `Items`: Lista de itens do pedido
-- `CancelledAt`: Data de cancelamento
+**1. Crie a classe do consumidor:**
 
-#### StockUpdatedEvent
-Disparado quando o estoque de um produto é atualizado.
-- `ProductId`: ID do produto
-- `ProductName`: Nome do produto
-- `PreviousStock`: Estoque anterior
-- `NewStock`: Novo estoque
-- `Operation`: Tipo de operação ("Reserved", "Released", "Updated")
-- `UpdatedAt`: Data de atualização
+```csharp
+using Messaging;
+using System.Text.Json;
+
+// Exemplo de um consumidor no StockService
+public class OrderCreatedConsumer : QueueConsumerBackgroundService
+{
+    private readonly ILogger<OrderCreatedConsumer> _logger;
+
+    // O nome da fila a ser consumida.
+    protected override string QueueName => "stock.order_created";
+
+    public OrderCreatedConsumer(
+        ILogger<OrderCreatedConsumer> logger,
+        IRabbitMqConnectionManager connectionManager,
+        IOptions<RabbitMqSettings> settings) 
+        : base(logger, connectionManager, settings)
+    {
+        _logger = logger;
+    }
+
+    // Lógica para processar a mensagem.
+    protected override async Task<bool> HandleMessageAsync(string message, IBasicProperties properties)
+    {
+        _logger.LogInformation("Processando evento de criação de pedido.");
+        var eventData = JsonSerializer.Deserialize<OrderCreatedEvent>(message);
+
+        // ... lógica para reservar o estoque ...
+
+        // Retorne 'true' se a mensagem foi processada com sucesso.
+        // Retorne 'false' para enviá-la para a Dead Letter Queue (DLQ).
+        return true;
+    }
+}
+```
+
+**2. Registre o consumidor no `Program.cs`:**
+
+```csharp
+// Adiciona o consumidor como um serviço de background
+builder.Services.AddHostedService<OrderCreatedConsumer>();
+```
 
 ## Implementação Técnica
 
-A biblioteca usa reflexão para acessar os tipos do RabbitMQ.Client dinamicamente, evitando problemas de compatibilidade de versão entre diferentes versões do pacote RabbitMQ.Client.
-
-### RabbitMqPublisher
-- Implementa `IMessagePublisher`
-- Publica mensagens para um exchange do tipo "direct"
-- Serializa eventos usando System.Text.Json
-
-### RabbitMqConsumer
-- Implementa `IMessageConsumer`
-- Consome mensagens de filas específicas
-- Desserializa mensagens automaticamente
-
-## Exemplo de Uso Completo
-
-### SalesService
-O SalesService foi configurado para publicar eventos `OrderCreatedEvent` quando um pedido é criado com sucesso.
-
-### StockService
-O StockService foi configurado para publicar eventos `StockUpdatedEvent` quando o estoque de um produto é atualizado.
+- **`RabbitMqConnectionManager`**: Um serviço singleton que gerencia uma única conexão persistente e resiliente com o RabbitMQ.
+- **`RabbitMqPublisher`**: Implementa `IMessagePublisher` e utiliza a conexão gerenciada para criar um canal e publicar mensagens. É registrado como singleton.
+- **`QueueConsumerBackgroundService`**: Uma classe base abstrata que herda de `BackgroundService`. Ela lida com toda a complexidade de criar um consumidor (canal, declaração de fila, DLQ, loop de consumo, acks/nacks).
+- **`ServiceCollectionExtensions`**: Fornece o método `AddRabbitMqMessaging` para uma configuração de DI limpa e centralizada.
 
 ## Próximos Passos
 
-1. **Implementar Consumidores**: Criar consumidores nos serviços apropriados para processar os eventos
-2. **Tratamento de Erros**: Implementar retry e dead letter queues
-3. **Monitoramento**: Adicionar logging e métricas
-4. **Testes**: Criar testes de integração para a comunicação entre serviços
-
-## Dependências
-
-- RabbitMQ.Client (>= 6.0.0)
-- System.Text.Json
-- Microsoft.Extensions.Configuration
-- Microsoft.Extensions.DependencyInjection</content>
-<parameter name="filePath">/home/leandro/Imagens/micro/shared/Messaging/README.md
+1. **Implementar Consumidores**: Criar as classes de consumidores nos microsserviços apropriados.
+2. **Monitoramento**: Adicionar logging e métricas detalhadas para observar a saúde do sistema de mensageria.
+3. **Testes de Integração**: Criar testes que validem a comunicação de ponta a ponta entre os serviços através do RabbitMQ.

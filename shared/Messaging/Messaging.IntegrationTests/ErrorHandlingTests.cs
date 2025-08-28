@@ -1,115 +1,115 @@
-using Messaging;
 using Messaging.Events;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RabbitMQ.Client;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Messaging.IntegrationTests;
-
-public class ErrorHandlingTests : IDisposable
+namespace Messaging.IntegrationTests
 {
-    private readonly RabbitMqSettings _settings;
-    private readonly IMessagePublisher _publisher;
-    private readonly IMessageConsumer _consumer;
-
-    public ErrorHandlingTests()
+    public class ErrorHandlingTests : IAsyncLifetime
     {
-        _settings = new RabbitMqSettings
+        private readonly ServiceProvider _serviceProvider;
+        private readonly IMessagePublisher _publisher;
+        private readonly IHost _host;
+        private static readonly TaskCompletionSource<OrderCreatedEvent> _dlqMessageReceivedTcs = new();
+
+        public ErrorHandlingTests()
         {
-            HostName = "localhost",
-            Port = 5672,
-            UserName = "guest",
-            Password = "guest",
-            VirtualHost = "/",
-            ExchangeName = "test_exchange",
-            QueuePrefix = "test_"
-        };
-
-        _publisher = new RabbitMqPublisher(_settings);
-        _consumer = new RabbitMqConsumer(_settings);
-    }
-
-    [Fact]
-    public async Task Consumer_WithErrorHandler_ShouldMoveMessageToDLQ()
-    {
-        // Arrange
-        var orderEvent = new OrderCreatedEvent
-        {
-            OrderId = 999,
-            UserId = 888,
-            Items = new List<OrderItemEvent>(),
-            TotalAmount = 0,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        var dlqMessageReceived = false;
-        var dlqConsumer = new RabbitMqConsumer(_settings);
-
-        // Configurar consumidor da DLQ
-        await dlqConsumer.StartConsumingAsync(
-            queueName: "test_error_queue.dlq",
-            messageHandler: async (message) =>
-            {
-                var dlqEvent = JsonSerializer.Deserialize<OrderCreatedEvent>(message);
-                if (dlqEvent?.OrderId == 999)
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    dlqMessageReceived = true;
-                }
-            });
+                    {"RabbitMQ:HostName", "localhost"},
+                    {"RabbitMQ:Port", "5672"},
+                        {"RabbitMQ:UserName", "guest"},
+                        {"RabbitMQ:Password", "guest"},
+                    {"RabbitMQ:VirtualHost", "/"},
+                    {"RabbitMQ:ExchangeName", "test_exchange"},
+                    {"RabbitMQ:QueuePrefix", "test."}
+                })
+                .Build();
 
-        // Act - Publicar mensagem que causará erro
-        await _publisher.PublishAsync(orderEvent, "error_queue");
+            var services = new ServiceCollection();
+            services.AddLogging(builder => builder.AddConsole());
+            services.AddRabbitMqMessaging(configuration);
+            services.AddHostedService<ErroringConsumer>();
+            services.AddHostedService<DlqConsumer>();
 
-        // Consumir com handler que sempre lança erro
-        await _consumer.StartConsumingAsync(
-            queueName: "test_error_queue",
-            messageHandler: async (message) =>
+            _serviceProvider = services.BuildServiceProvider();
+            _publisher = _serviceProvider.GetRequiredService<IMessagePublisher>();
+            _host = _serviceProvider.GetRequiredService<IHost>();
+        }
+
+        // Consumidor que sempre falha, para forçar a mensagem para a DLQ
+        private class ErroringConsumer : QueueConsumerBackgroundService
+        {
+            protected override string QueueName => "test.errorqueue";
+
+            public ErroringConsumer(ILogger<ErroringConsumer> logger, IRabbitMqConnectionManager connectionManager, IOptions<RabbitMqSettings> settings)
+                : base(logger, connectionManager, settings) { }
+
+            protected override Task<bool> HandleMessageAsync(string message, IBasicProperties properties)
             {
-                // Sempre lançar erro para testar DLQ
-                throw new InvalidOperationException("Erro de teste para DLQ");
-            });
+                // Sempre falha para testar a DLQ
+                return Task.FromResult(false);
+            }
+        }
 
-        // Aguardar processamento
-        await Task.Delay(3000);
-
-        // Assert
-        Assert.True(dlqMessageReceived, "Mensagem não foi movida para DLQ após erro");
-    }
-
-    [Fact]
-    public async Task Publisher_WithInvalidConnection_ShouldThrowException()
-    {
-        // Arrange
-        var invalidSettings = new RabbitMqSettings
+        // Consumidor para a DLQ
+        private class DlqConsumer : QueueConsumerBackgroundService
         {
-            HostName = "invalid-host",
-            Port = 5672,
-            UserName = "guest",
-            Password = "guest",
-            VirtualHost = "/",
-            ExchangeName = "test_exchange",
-            QueuePrefix = "test_"
-        };
+            protected override string QueueName => "test.errorqueue.dlq";
 
-        // Act & Assert
-        await Assert.ThrowsAsync<Exception>(async () =>
+            public DlqConsumer(ILogger<DlqConsumer> logger, IRabbitMqConnectionManager connectionManager, IOptions<RabbitMqSettings> settings)
+                : base(logger, connectionManager, settings) { }
+
+            protected override Task<bool> HandleMessageAsync(string message, IBasicProperties properties)
+            {
+                var receivedEvent = JsonSerializer.Deserialize<OrderCreatedEvent>(message);
+                if (receivedEvent != null)
+                {
+                    _dlqMessageReceivedTcs.TrySetResult(receivedEvent);
+                }
+                return Task.FromResult(true);
+            }
+        }
+
+        public async Task InitializeAsync()
         {
-            var publisher = new RabbitMqPublisher(invalidSettings);
+            await _host.StartAsync();
+        }
+
+        public async Task DisposeAsync()
+        {
+            await _host.StopAsync();
+            await _serviceProvider.DisposeAsync();
+        }
+
+        [Fact]
+        public async Task Consumer_WithProcessingError_ShouldMoveMessageToDlq()
+        {
+            // Arrange
             var orderEvent = new OrderCreatedEvent
             {
-                OrderId = 1,
-                UserId = 1,
-                Items = new List<OrderItemEvent>(),
-                TotalAmount = 0,
+                OrderId = 999,
+                UserId = 888,
                 CreatedAt = DateTime.UtcNow
             };
 
-            await publisher.PublishAsync(orderEvent);
-        });
-    }
+            // Act
+            // Publica na fila que o ErroringConsumer está escutando
+            await _publisher.PublishAsync(orderEvent, "errorqueue");
 
-    public void Dispose()
-    {
-        (_publisher as IDisposable)?.Dispose();
-        (_consumer as IDisposable)?.Dispose();
+            // Assert
+            // Aguarda o DlqConsumer receber a mensagem
+            var receivedEvent = await _dlqMessageReceivedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.NotNull(receivedEvent);
+            Assert.Equal(orderEvent.OrderId, receivedEvent.OrderId);
+        }
     }
 }

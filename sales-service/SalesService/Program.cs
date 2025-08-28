@@ -57,11 +57,8 @@ public class Program
             });
         });
 
-    // Add RabbitMQ configuration
-    builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
-    // Expose the strongly-typed RabbitMqSettings instance so types that expect RabbitMqSettings (not IOptions<>) can be resolved
-    builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value);
-    builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
+    // Add RabbitMQ messaging using shared extension (registers connection manager and publisher)
+    builder.Services.AddRabbitMqMessaging(builder.Configuration);
 
         // Add HttpClient for service-to-service communication
         builder.Services.AddHttpClient("StockService", client =>

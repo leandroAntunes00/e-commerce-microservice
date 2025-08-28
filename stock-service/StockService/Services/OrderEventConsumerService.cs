@@ -1,5 +1,11 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Messaging;
 using Messaging.Events;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using StockService.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,11 +19,11 @@ public class OrderEventConsumerService : BackgroundService
 
     public OrderEventConsumerService(
         IServiceProvider serviceProvider,
-        RabbitMqSettings rabbitMqSettings,
+        Microsoft.Extensions.Options.IOptions<RabbitMqSettings> rabbitMqSettings,
         ILogger<OrderEventConsumerService> logger)
     {
         _serviceProvider = serviceProvider;
-        _rabbitMqSettings = rabbitMqSettings;
+        _rabbitMqSettings = rabbitMqSettings.Value;
         _logger = logger;
     }
 
@@ -27,20 +33,27 @@ public class OrderEventConsumerService : BackgroundService
 
         // Criar consumer com retry para não derrubar o host se RabbitMQ ainda não estiver pronto
         IMessageConsumer? consumer = null;
+        int retryCount = 0;
+        const int maxRetries = 30; // Máximo de 30 tentativas (60 segundos)
 
-        while (!stoppingToken.IsCancellationRequested && consumer == null)
+    while (!stoppingToken.IsCancellationRequested && consumer == null && retryCount < maxRetries)
         {
             try
             {
-                using var scope = _serviceProvider.CreateScope();
-                var consumerLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Messaging.RabbitMqConsumer>>();
-                // Tentar instanciar diretamente o consumer; se falhar, aguardar e tentar novamente
-                consumer = new Messaging.RabbitMqConsumer(_rabbitMqSettings, consumerLogger);
+        // Resolve consumer from DI inside a scope so its dependencies are injected
+        using var scope = _serviceProvider.CreateScope();
+        consumer = scope.ServiceProvider.GetRequiredService<IMessageConsumer>();
+        _logger.LogInformation("Consumidor RabbitMQ resolvido via DI com sucesso.");
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Não foi possível conectar ao RabbitMQ. Tentando novamente em 2s...");
-                try { await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken); } catch { break; }
+                retryCount++;
+                _logger.LogWarning(ex, "Não foi possível conectar ao RabbitMQ. Tentativa {Retry}/{MaxRetries}. Tentando novamente em 2s...", retryCount, maxRetries);
+                try { await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken); } catch (OperationCanceledException) { break; }
             }
         }
 
@@ -50,8 +63,10 @@ public class OrderEventConsumerService : BackgroundService
             return;
         }
 
-        // Consumir eventos OrderCreated
-        await consumer.StartConsumingAsync(
+        try
+        {
+            // Consumir eventos OrderCreated
+            await consumer.StartConsumingAsync(
                 queueName: $"{_rabbitMqSettings.QueuePrefix}order_created",
                 messageHandler: async (message) =>
                 {
@@ -69,8 +84,8 @@ public class OrderEventConsumerService : BackgroundService
                     }
                 });
 
-        // Consumir eventos OrderCancelled
-        await consumer.StartConsumingAsync(
+            // Consumir eventos OrderCancelled
+            await consumer.StartConsumingAsync(
                 queueName: $"{_rabbitMqSettings.QueuePrefix}order_cancelled",
                 messageHandler: async (message) =>
                 {
@@ -88,8 +103,25 @@ public class OrderEventConsumerService : BackgroundService
                     }
                 });
 
-        // Aguardar até o serviço ser parado
-        await Task.Delay(Timeout.Infinite, stoppingToken);
+            // Aguardar até o serviço ser parado
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+        finally
+        {
+            try
+            {
+                if (consumer != null)
+                {
+                    await consumer.StopConsumingAsync();
+                    (consumer as IDisposable)?.Dispose();
+                    _logger.LogInformation("Consumidor RabbitMQ finalizado.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Erro ao finalizar consumidor RabbitMQ");
+            }
+        }
     }
 
     private async Task ProcessOrderCreatedEvent(OrderCreatedEvent orderEvent)

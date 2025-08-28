@@ -1,76 +1,78 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RabbitMQ.Client;
+using System;
+using System.Threading.Tasks;
 
-namespace Messaging;
-
-public class RabbitMqPublisher : IMessagePublisher, IDisposable
+namespace Messaging
 {
-    private readonly object _connection;
-    private readonly object _channel;
-    private readonly RabbitMqSettings _settings;
-    private readonly ILogger<RabbitMqPublisher> _logger;
-
-    public RabbitMqPublisher(RabbitMqSettings settings, ILogger<RabbitMqPublisher> logger)
+    public class RabbitMqPublisher : IMessagePublisher, IDisposable
     {
-        _settings = settings;
-        _logger = logger;
+        private readonly IRabbitMqConnectionManager _connectionManager;
+        private readonly ILogger<RabbitMqPublisher> _logger;
+        private readonly RabbitMqSettings _settings;
+        private readonly IModel _channel;
 
-        // Usar reflexão para criar os objetos RabbitMQ dinamicamente
-        var connectionFactoryType = Type.GetType("RabbitMQ.Client.ConnectionFactory, RabbitMQ.Client");
-        var factory = Activator.CreateInstance(connectionFactoryType!);
 
-        // Configurar propriedades
-        connectionFactoryType!.GetProperty("HostName")!.SetValue(factory, _settings.HostName);
-        connectionFactoryType.GetProperty("Port")!.SetValue(factory, _settings.Port);
-        connectionFactoryType.GetProperty("UserName")!.SetValue(factory, _settings.UserName);
-        connectionFactoryType.GetProperty("Password")!.SetValue(factory, _settings.Password);
-        connectionFactoryType.GetProperty("VirtualHost")!.SetValue(factory, _settings.VirtualHost);
-
-        // Criar conexão e canal
-        _connection = connectionFactoryType.GetMethod("CreateConnection")!.Invoke(factory, null)!;
-        _channel = _connection.GetType().GetMethod("CreateModel")!.Invoke(_connection, null)!;
-
-        // Declarar exchange
-        _channel.GetType().GetMethod("ExchangeDeclare")!.Invoke(_channel, new object[]
+  
+        public RabbitMqPublisher(
+            IRabbitMqConnectionManager connectionManager,
+            ILogger<RabbitMqPublisher> logger,
+            IOptions<RabbitMqSettings> settings)
         {
-            _settings.ExchangeName,
-            "direct",
-            true,
-            false
-        });
+            _connectionManager = connectionManager;
+            _logger = logger;
+            _settings = settings.Value;
 
-        _logger.LogInformation("RabbitMqPublisher inicializado com sucesso. Exchange: {ExchangeName}", _settings.ExchangeName);
-    }
+            try
+            {
+                var connection = _connectionManager.GetConnection();
+                _channel = connection.CreateModel();
 
-    public async Task PublishAsync<T>(T message) where T : IEvent
-    {
-        await PublishAsync(message, message.EventType.ToLower());
-    }
+                _channel.ExchangeDeclare(
+                    exchange: _settings.ExchangeName,
+                    type: "direct",
+                    durable: true,
+                    autoDelete: false
+                );
 
-    public async Task PublishAsync<T>(T message, string routingKey) where T : IEvent
-    {
-        await Task.Run(() =>
+                _logger.LogInformation("RabbitMqPublisher inicializado com sucesso. Exchange: {ExchangeName}", _settings.ExchangeName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao inicializar RabbitMqPublisher");
+                throw;
+            }
+        }
+
+        public Task PublishAsync<T>(T message) where T : IEvent
+        {
+            return PublishAsync(message, message.EventType.ToLowerInvariant());
+        }
+
+        public Task PublishAsync<T>(T message, string routingKey) where T : IEvent
         {
             try
             {
-                var messageJson = JsonSerializer.Serialize(message);
-                var body = Encoding.UTF8.GetBytes(messageJson);
+                var body = JsonSerializer.SerializeToUtf8Bytes(message);
 
-                var properties = _channel.GetType().GetMethod("CreateBasicProperties")!.Invoke(_channel, null);
-                properties!.GetType().GetProperty("Persistent")!.SetValue(properties, true);
-                properties.GetType().GetProperty("Type")!.SetValue(properties, message.EventType);
-                properties.GetType().GetProperty("Timestamp")!.SetValue(properties, DateTime.UtcNow);
+                var properties = _channel.CreateBasicProperties();
+                properties.Persistent = true;
+                properties.Type = message.EventType;
+                properties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                properties.ContentType = "application/json";
 
-                _channel.GetType().GetMethod("BasicPublish")!.Invoke(_channel, new object[]
-                {
-                    _settings.ExchangeName,
-                    routingKey,
-                    properties,
-                    body
-                });
+                _channel.BasicPublish(
+                    exchange: _settings.ExchangeName,
+                    routingKey: routingKey,
+                    basicProperties: properties,
+                    body: body
+                );
 
-                _logger.LogInformation("Evento publicado com sucesso. Tipo: {EventType}, RoutingKey: {RoutingKey}, Tamanho: {Size} bytes",
+                _logger.LogInformation(
+                    "Evento publicado com sucesso. Tipo: {EventType}, RoutingKey: {RoutingKey}, Tamanho: {Size} bytes",
                     message.EventType, routingKey, body.Length);
             }
             catch (Exception ex)
@@ -79,12 +81,13 @@ public class RabbitMqPublisher : IMessagePublisher, IDisposable
                     message.EventType, routingKey);
                 throw;
             }
-        });
-    }
 
-    public void Dispose()
-    {
-        (_channel as IDisposable)?.Dispose();
-        (_connection as IDisposable)?.Dispose();
+            return Task.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            _channel?.Dispose();
+        }
     }
 }

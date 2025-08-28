@@ -6,6 +6,7 @@ using StockService.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 using Xunit;
 
@@ -121,7 +122,7 @@ public class OrderEventConsumerIntegrationTests : IDisposable
         // Act
         var consumerService = new OrderEventConsumerService(
             _serviceProvider,
-            _rabbitMqSettings,
+            Options.Create(_rabbitMqSettings),
             _serviceProvider.GetRequiredService<ILogger<OrderEventConsumerService>>());
 
         // Simular o processamento do evento

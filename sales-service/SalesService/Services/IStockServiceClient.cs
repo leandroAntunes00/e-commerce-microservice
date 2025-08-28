@@ -56,7 +56,7 @@ public class StockServiceClient : IStockServiceClient
         {
             // This would typically call an endpoint to release reserved stock
             // For now, we'll return true as this is a simplified implementation
-            return true;
+            return await Task.FromResult(true);
         }
         catch
         {

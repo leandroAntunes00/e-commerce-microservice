@@ -42,14 +42,11 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("UserOrAdmin", policy => policy.RequireRole("USER", "ADMIN"));
 });
 
-// Configure RabbitMQ
-builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMQ"));
-// Expor a instância concreta para compatibilidade com tipos que consomem RabbitMqSettings diretamente
-builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RabbitMqSettings>>().Value);
-builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
-builder.Services.AddSingleton<IMessageConsumer, RabbitMqConsumer>();
+// Configure RabbitMQ using shared extension
+builder.Services.AddRabbitMqMessaging(builder.Configuration);
 
-// Register background service for consuming order events
+// Register consumer as transient so we can create one instance per queue
+builder.Services.AddTransient<IMessageConsumer, RabbitMqConsumer>();
 builder.Services.AddHostedService<OrderEventConsumerService>();
 
 var app = builder.Build();
