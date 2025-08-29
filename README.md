@@ -185,53 +185,128 @@ Cenários Sad Path (❌):
 
 ---
 
-**🎉 Conclusão**: Este projeto demonstra uma implementação completa de arquitetura de microserviços com comunicação assíncrona, testes abrangentes e boas práticas de desenvolvimento.
+## 🛠️ Guia de Uso com Makefile
+
+Para facilitar o uso do projeto, criamos um `Makefile` com comandos simplificados para gerenciar os containers Docker.
+
+### 🚀 Início Rápido
+
+```bash
+# Primeira vez ou começar do zero (recomendado)
+make fresh-start
+
+# Para desenvolvimento normal
+make dev
+
+# Verificar status
+make status
 ```
 
-### **Arquitetura de Testes**
-```
-Cenários Happy Path (✅):
-├── Criar usuário ADMIN
-├── Criar usuário USER
-├── Criar produto (via ADMIN)
-├── Consultar produtos
-├── Criar pedido (com estoque suficiente)
-├── Consultar pedidos
-├── Cancelar pedido
-└── Verificar comunicação assíncrona
+### 📋 Comandos Disponíveis
 
-Cenários Sad Path (❌):
-├── Usuário duplicado
-├── Produto sem autorização
-├── Pedido com estoque insuficiente
-├── Pedido sem autenticação
-├── Produto inexistente
-└── Consulta de pedido de outro usuário
+| Comando | Descrição |
+|---------|-----------|
+| `make help` | Mostra todos os comandos disponíveis |
+| `make build` | Constrói as imagens Docker |
+| `make up` | Sobe os containers |
+| `make down` | Para os containers |
+| `make clean` | Remove containers, imagens e volumes ⚠️ |
+| `make restart` | Reinicia os serviços |
+| `make rebuild` | Reconstrói e sobe tudo |
+| `make fresh-start` | Limpeza completa + reconstrução |
+| `make status` | Mostra status dos containers |
+| `make logs` | Mostra logs de todos os serviços |
+| `make info` | Mostra portas e endpoints |
+
+### 🌐 Endpoints dos Serviços
+
+- **API Gateway**: http://localhost:5000
+- **Auth Service**: http://localhost:5001
+- **Sales Service**: http://localhost:5002
+- **Stock Service**: http://localhost:5003
+
+### 🗄️ Bancos de Dados
+
+- **PostgreSQL Auth**: localhost:5432
+- **PostgreSQL Sales**: localhost:5434
+- **PostgreSQL Stock**: localhost:5433
+- **RabbitMQ**: localhost:15672 (user: guest, pass: guest)
+
+### 🔧 Solução de Problemas
+
+```bash
+# Se algo der errado, use:
+make down
+make clean
+make fresh-start
+
+# Ver logs específicos:
+make auth-logs    # Auth Service
+make sales-logs   # Sales Service
+make stock-logs   # Stock Service
+make api-logs     # API Gateway
 ```
 
----
+### 💡 Dicas
 
-**🎉 Conclusão**: Este projeto demonstra uma implementação completa de arquitetura de microserviços com comunicação assíncrona, testes abrangentes e boas práticas de desenvolvimento.</content>
-</xai:function_call">### **Arquitetura de Testes**
-```
-Cenários Happy Path (✅):
-├── Criar usuário ADMIN
-├── Criar usuário USER
-├── Criar produto (via ADMIN)
-├── Consultar produtos
-├── Criar pedido (com estoque suficiente)
-├── Consultar pedidos
-├── Cancelar pedido
-└── Verificar comunicação assíncrona
+- Use `make help` para ver todos os comandos
+- O comando `make fresh-start` faz limpeza completa e reconstrução
+- Os logs são coloridos e fáceis de entender
+- Todos os comandos têm confirmações visuais
 
-Cenários Sad Path (❌):
-├── Usuário duplicado
-├── Produto sem autorização
-├── Pedido com estoque insuficiente
-├── Pedido sem autenticação
-├── Produto inexistente
-└── Consulta de pedido de outro usuário
+## 🪟 Scripts para Windows
+
+Para usuários Windows, criamos scripts especializados que facilitam o gerenciamento dos containers:
+
+### 📋 Scripts Disponíveis
+
+| Plataforma | Script | Descrição |
+|------------|--------|-----------|
+| **Windows** | [`deploy.bat`](deploy.bat) | Script Batch simples e universal |
+| **Windows** | [`deploy.ps1`](deploy.ps1) | Script PowerShell avançado |
+| **Linux/Mac** | [`Makefile`](Makefile) | Make tradicional |
+
+### 🚀 Guia Rápido Windows
+
+#### **Opção 1: Batch Script (Recomendado)**
+```cmd
+REM Deploy completo
+deploy.bat fresh-start
+
+REM Ver status
+deploy.bat status
+
+REM Ambiente de desenvolvimento
+deploy.bat dev
 ```
+
+#### **Opção 2: PowerShell Script (Avançado)**
+```powershell
+# Deploy completo
+.\deploy.ps1 -Command fresh-start
+
+# Ver status
+.\deploy.ps1 -Command status
+
+# Uso interativo
+. .\deploy.ps1
+Start-FreshDeployment
+```
+
+### 📚 Documentação Windows
+
+- 📖 **[README_Windows.md](README_Windows.md)** - Guia completo para Windows
+- 📋 **[README_Windows_Scripts.md](README_Windows_Scripts.md)** - Comparação Batch vs PowerShell
+- 🐳 **[GUIA_DEPLOY.md](GUIA_DEPLOY.md)** - Guia geral de deployment
+
+### 🎯 Quando Usar Cada Script
+
+| Situação | Recomendação |
+|----------|--------------|
+| **Iniciante no Windows** | Use `deploy.bat` |
+| **Usuário avançado** | Use `deploy.ps1` |
+| **Linux/Mac** | Use `make` |
+| **CI/CD** | Use scripts apropriados |
 
 ---
 

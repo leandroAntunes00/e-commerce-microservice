@@ -5,8 +5,9 @@ WORKDIR /src
 COPY . ./
 
 # restore and publish only the StockService project
-RUN dotnet restore ./stock-service/StockService/StockService.csproj
-RUN dotnet publish ./stock-service/StockService/StockService.csproj -c Release -o /app/publish
+# when build context is repository root, restore/publish using full path
+RUN dotnet restore stock-service/StockService/StockService.csproj
+RUN dotnet publish stock-service/StockService/StockService.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app

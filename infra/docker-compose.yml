@@ -75,6 +75,9 @@ services:
   # Microservices (local dev) - expose example services with JWT envs
   api-gateway:
     image: micro-gateway
+    build:
+      context: ..
+      dockerfile: api-gateway/ApiGateway/Dockerfile
     container_name: api-gateway
     environment:
       <<: *jwt-dev
@@ -89,6 +92,9 @@ services:
 
   auth-service:
     image: micro-auth
+    build:
+      context: ..
+      dockerfile: auth-service/AuthService/Dockerfile
     container_name: auth-service
     environment:
       <<: *jwt-dev
@@ -101,6 +107,9 @@ services:
 
   sales-service:
     image: micro-sales
+    build:
+      context: ..
+      dockerfile: sales-service/SalesService/Dockerfile
     container_name: sales-service
     environment:
       <<: *jwt-dev
@@ -116,6 +125,9 @@ services:
 
   stock-service:
     image: micro-stock
+    build:
+      context: ..
+      dockerfile: stock-service/StockService/Dockerfile
     container_name: stock-service
     environment:
       <<: *jwt-dev

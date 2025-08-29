@@ -67,6 +67,13 @@ builder.Services.AddScoped<StockService.Application.UseCases.IUpdateStockUseCase
 
 var app = builder.Build();
 
+// Run migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<StockDbContext>();
+    db.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

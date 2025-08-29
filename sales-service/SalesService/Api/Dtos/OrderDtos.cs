@@ -15,7 +15,13 @@ public class OrderItemRequest
 public class PaymentRequest
 {
     public int OrderId { get; set; }
-    public bool Confirm { get; set; }
+    public decimal Amount { get; set; }
+}
+
+public class ConfirmPaymentRequest
+{
+    public int OrderId { get; set; }
+    public string Method { get; set; } = string.Empty;
 }
 
 public class OrderResponse

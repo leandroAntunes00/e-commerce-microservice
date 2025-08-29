@@ -3,8 +3,9 @@ WORKDIR /src
 
 # Copy everything and restore/publish
 COPY . ./
-RUN dotnet restore
-RUN dotnet publish -c Release -o /app/publish
+# restore/publish only the ApiGateway project to avoid restoring the entire solution
+RUN dotnet restore api-gateway/ApiGateway/ApiGateway.csproj
+RUN dotnet publish api-gateway/ApiGateway/ApiGateway.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app

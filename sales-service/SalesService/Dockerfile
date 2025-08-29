@@ -5,8 +5,9 @@ WORKDIR /src
 COPY . ./
 
 # publish only the SalesService project to avoid building tests/solution
-RUN dotnet restore ./sales-service/SalesService/SalesService.csproj
-RUN dotnet publish ./sales-service/SalesService/SalesService.csproj -c Release -o /app/publish
+# when build context is repository root, restore/publish using full path
+RUN dotnet restore sales-service/SalesService/SalesService.csproj
+RUN dotnet publish sales-service/SalesService/SalesService.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
