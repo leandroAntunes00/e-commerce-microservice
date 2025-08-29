@@ -27,7 +27,8 @@ public class StockServiceClient : IStockServiceClient
             if (!response.IsSuccessStatusCode)
                 return false;
 
-            var product = await response.Content.ReadFromJsonAsync<StockProductResponse>();
+            var envelope = await response.Content.ReadFromJsonAsync<StockServiceEnvelope>();
+            var product = envelope?.Product;
             return product != null && product.StockQuantity >= quantity;
         }
         catch
@@ -69,5 +70,16 @@ public class StockProductResponse
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string Category { get; set; } = string.Empty;
     public int StockQuantity { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
+}
+
+public class StockServiceEnvelope
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public StockProductResponse? Product { get; set; }
 }

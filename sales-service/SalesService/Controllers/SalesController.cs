@@ -164,12 +164,37 @@ public class SalesController : ControllerBase
 
             await _messagePublisher.PublishAsync(orderCreatedEvent);
 
+            // Reload saved order from database to avoid EF navigation cycles during JSON serialization
+            var savedOrder = _context.Orders
+                .Where(o => o.Id == order.Id)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.UserId,
+                    o.Status,
+                    o.TotalAmount,
+                    o.Notes,
+                    o.CreatedAt,
+                    o.UpdatedAt,
+                    Items = o.Items.Select(i => new
+                    {
+                        i.Id,
+                        i.ProductId,
+                        i.ProductName,
+                        i.UnitPrice,
+                        i.Quantity,
+                        i.TotalPrice,
+                        i.CreatedAt
+                    }).ToList()
+                })
+                .FirstOrDefault();
+
             return CreatedAtAction(nameof(GetOrder), new { id = order.Id },
                 new
                 {
                     Success = true,
                     Message = "Order created successfully",
-                    Order = order
+                    Order = savedOrder
                 });
         }
         catch (Exception ex)

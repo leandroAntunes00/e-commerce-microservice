@@ -1,6 +1,14 @@
 version: '3.8'
 
+# Shared JWT environment for local development (anchor)
+x-jwt: &jwt-dev
+  environment:
+    - Jwt__Key=dev-super-secret-key-please-change-32-chars!!
+    - Jwt__Issuer=AuthService
+    - Jwt__Audience=Microservices
+
 services:
+
   # PostgreSQL para Auth Service
   postgres-auth:
     image: postgres:15
@@ -60,6 +68,56 @@ services:
       - "15672:15672" # Porta Management UI
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  # Microservices (local dev) - expose example services with JWT envs
+  api-gateway:
+    image: micro-gateway
+    container_name: api-gateway
+    <<: *jwt-dev
+    ports:
+      - "5000:80"
+    volumes:
+      - ../api-gateway/ApiGateway/appsettings.json:/app/appsettings.json:ro
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  auth-service:
+    image: micro-auth
+    container_name: auth-service
+    <<: *jwt-dev
+    ports:
+      - "5001:80"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  sales-service:
+    image: micro-sales
+    container_name: sales-service
+    <<: *jwt-dev
+    environment:
+      Services__StockService: "http://stock-service:80"
+      Jwt__Key: "dev-super-secret-key-please-change-32-chars!!"
+      Jwt__Issuer: "AuthService"
+      Jwt__Audience: "Microservices"
+      ConnectionStrings__DefaultConnection: "Host=postgres-sales;Port=5432;Database=salesdb;Username=postgres;Password=password123"
+    ports:
+      - "5002:80"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    
+
+  stock-service:
+    image: micro-stock
+    container_name: stock-service
+    <<: *jwt-dev
+    ports:
+      - "5003:80"
     networks:
       - microservices-net
     restart: unless-stopped

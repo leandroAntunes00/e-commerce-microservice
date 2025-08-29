@@ -72,6 +72,13 @@ public class Program
 
         var app = builder.Build();
 
+        // Ensure database is created in development/local environment
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
+            db.Database.EnsureCreated();
+        }
+
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AuthService.Data;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +50,26 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Diagnostic middleware: log incoming requests (method + path)
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"Incoming request: {context.Request.Method} {context.Request.Path}");
+    await next();
+});
+
+// Health endpoint: respond directly on HTTP without redirect and also support HTTPS
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/health")
+    {
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        await context.Response.WriteAsync("Auth Service is running!");
+        return;
+    }
+
+    await next();
+});
+
 app.UseHttpsRedirection();
 
 // Enable authentication and authorization
@@ -56,6 +77,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Keep a mapped endpoint for health to support HTTPS endpoint routing as well
+app.MapGet("/health", () => Results.Ok("Auth Service is running!"));
 
 // Apply database migrations
 using (var scope = app.Services.CreateScope())
