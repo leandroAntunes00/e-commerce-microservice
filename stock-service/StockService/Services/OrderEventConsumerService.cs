@@ -130,13 +130,19 @@ public class OrderEventConsumerService : BackgroundService
 
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<StockDbContext>();
+    var messagePublisher = scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
 
-        foreach (var item in orderEvent.Items)
+    bool overallSuccess = true;
+    string? failureReason = null;
+
+    foreach (var item in orderEvent.Items)
         {
             var product = await context.Products.FindAsync(item.ProductId);
             if (product == null)
             {
                 _logger.LogWarning($"Produto não encontrado: ProductId={item.ProductId}");
+        overallSuccess = false;
+        failureReason = $"Product not found: {item.ProductId}";
                 continue;
             }
 
@@ -144,8 +150,10 @@ public class OrderEventConsumerService : BackgroundService
             {
                 _logger.LogError($"Estoque insuficiente para produto {product.Name}: solicitado={item.Quantity}, disponível={product.StockQuantity}");
 
-                // Poderia publicar um evento de falha de reserva aqui
-                continue;
+        overallSuccess = false;
+        failureReason = $"Insufficient stock for product {product.Name}";
+        // Não reservar mais itens deste pedido
+        continue;
             }
 
             // Reservar estoque
@@ -158,7 +166,7 @@ public class OrderEventConsumerService : BackgroundService
             _logger.LogInformation($"Estoque reservado para produto {product.Name}: {previousStock} -> {product.StockQuantity}");
 
             // Publicar evento de atualização de estoque
-            var messagePublisher = scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
+            // (usa messagePublisher resolvido no escopo acima)
             var stockUpdatedEvent = new StockUpdatedEvent
             {
                 ProductId = product.Id,
@@ -172,7 +180,19 @@ public class OrderEventConsumerService : BackgroundService
             await messagePublisher.PublishAsync(stockUpdatedEvent);
         }
 
-        _logger.LogInformation($"Pedido {orderEvent.OrderId} processado com sucesso");
+        // Publicar evento informando sucesso/fracasso da reserva para o pedido
+    var reservationResult = new OrderReservationCompletedEvent
+        {
+            OrderId = orderEvent.OrderId,
+            Success = overallSuccess,
+            Reason = failureReason,
+            OccurredAt = DateTime.UtcNow
+        };
+
+    // Publish to a specific routing/queue name so SalesService consumer can receive it
+    await messagePublisher.PublishAsync(reservationResult);
+
+        _logger.LogInformation($"Pedido {orderEvent.OrderId} processado. Reservation success={overallSuccess}");
     }
 
     private async Task ProcessOrderCancelledEvent(OrderCancelledEvent orderEvent)

@@ -49,6 +49,18 @@ public class StockUpdatedEvent : BaseEvent
     public DateTime UpdatedAt { get; set; }
 }
 
+// Evento disparado quando a tentativa de reserva de um pedido foi concluída (sucesso ou falha)
+public class OrderReservationCompletedEvent : BaseEvent
+{
+    [JsonIgnore]
+    public override string EventType => "OrderReservationCompleted";
+
+    public int OrderId { get; set; }
+    public bool Success { get; set; }
+    public string? Reason { get; set; }
+    public DateTime OccurredAt { get; set; }
+}
+
 // Evento disparado quando um produto é criado
 public class ProductCreatedEvent : BaseEvent
 {

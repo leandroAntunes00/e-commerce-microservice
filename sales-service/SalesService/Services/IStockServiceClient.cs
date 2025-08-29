@@ -7,6 +7,7 @@ public interface IStockServiceClient
     Task<bool> CheckStockAvailability(int productId, int quantity);
     Task<bool> ReserveStock(int productId, int quantity);
     Task<bool> ReleaseStock(int productId, int quantity);
+    Task<StockProductResponse?> GetProductAsync(int productId);
 }
 
 public class StockServiceClient : IStockServiceClient
@@ -41,9 +42,10 @@ public class StockServiceClient : IStockServiceClient
     {
         try
         {
-            // This would typically call a specific endpoint for stock reservation
-            // For now, we'll just check availability
-            return await CheckStockAvailability(productId, quantity);
+            var resp = await _httpClient.PostAsJsonAsync($"/api/stock/products/{productId}/reserve", new { Quantity = quantity });
+            if (!resp.IsSuccessStatusCode) return false;
+            var envelope = await resp.Content.ReadFromJsonAsync<StockServiceEnvelope>();
+            return envelope != null && envelope.Success;
         }
         catch
         {
@@ -55,13 +57,29 @@ public class StockServiceClient : IStockServiceClient
     {
         try
         {
-            // This would typically call an endpoint to release reserved stock
-            // For now, we'll return true as this is a simplified implementation
-            return await Task.FromResult(true);
+            var resp = await _httpClient.PostAsJsonAsync($"/api/stock/products/{productId}/release", new { Quantity = quantity });
+            if (!resp.IsSuccessStatusCode) return false;
+            var envelope = await resp.Content.ReadFromJsonAsync<StockServiceEnvelope>();
+            return envelope != null && envelope.Success;
         }
         catch
         {
             return false;
+        }
+    }
+
+    public async Task<StockProductResponse?> GetProductAsync(int productId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"/api/stock/products/{productId}");
+            if (!response.IsSuccessStatusCode) return null;
+            var envelope = await response.Content.ReadFromJsonAsync<StockServiceEnvelope>();
+            return envelope?.Product;
+        }
+        catch
+        {
+            return null;
         }
     }
 }

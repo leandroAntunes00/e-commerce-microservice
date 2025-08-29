@@ -1,11 +1,11 @@
 version: '3.8'
 
 # Shared JWT environment for local development (anchor)
+# anchor contains plain key-values so we can merge into each service.environment
 x-jwt: &jwt-dev
-  environment:
-    - Jwt__Key=dev-super-secret-key-please-change-32-chars!!
-    - Jwt__Issuer=AuthService
-    - Jwt__Audience=Microservices
+  Jwt__Key: "your-super-secret-jwt-key-here-make-it-long-and-secure"
+  Jwt__Issuer: "AuthService"
+  Jwt__Audience: "Microservices"
 
 services:
 
@@ -76,7 +76,9 @@ services:
   api-gateway:
     image: micro-gateway
     container_name: api-gateway
-    <<: *jwt-dev
+    environment:
+      <<: *jwt-dev
+      ASPNETCORE_ENVIRONMENT: "Development"
     ports:
       - "5000:80"
     volumes:
@@ -88,7 +90,9 @@ services:
   auth-service:
     image: micro-auth
     container_name: auth-service
-    <<: *jwt-dev
+    environment:
+      <<: *jwt-dev
+      ASPNETCORE_ENVIRONMENT: "Development"
     ports:
       - "5001:80"
     networks:
@@ -98,12 +102,10 @@ services:
   sales-service:
     image: micro-sales
     container_name: sales-service
-    <<: *jwt-dev
     environment:
+      <<: *jwt-dev
+      ASPNETCORE_ENVIRONMENT: "Development"
       Services__StockService: "http://stock-service:80"
-      Jwt__Key: "dev-super-secret-key-please-change-32-chars!!"
-      Jwt__Issuer: "AuthService"
-      Jwt__Audience: "Microservices"
       ConnectionStrings__DefaultConnection: "Host=postgres-sales;Port=5432;Database=salesdb;Username=postgres;Password=password123"
     ports:
       - "5002:80"
@@ -115,7 +117,9 @@ services:
   stock-service:
     image: micro-stock
     container_name: stock-service
-    <<: *jwt-dev
+    environment:
+      <<: *jwt-dev
+      ASPNETCORE_ENVIRONMENT: "Development"
     ports:
       - "5003:80"
     networks:

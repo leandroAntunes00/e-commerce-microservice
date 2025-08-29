@@ -35,3 +35,13 @@ public class ProductResponse
     public ProductDto? Product { get; set; }
     public List<ProductDto>? Products { get; set; }
 }
+
+public class ReserveStockRequest
+{
+    public int Quantity { get; set; }
+}
+
+public class ReleaseStockRequest
+{
+    public int Quantity { get; set; }
+}

@@ -69,6 +69,8 @@ public class Program
 
         // Register StockServiceClient
         builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
+    // Register reservation result consumer
+    builder.Services.AddHostedService<ReservationResultConsumerService>();
 
         var app = builder.Build();
 

@@ -37,6 +37,26 @@ public class SalesController : ControllerBase
                 .Where(o => o.UserId == userId)
                 .Include(o => o.Items)
                 .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.UserId,
+                    o.Status,
+                    o.TotalAmount,
+                    o.Notes,
+                    o.CreatedAt,
+                    o.UpdatedAt,
+                    Items = o.Items.Select(i => new
+                    {
+                        i.Id,
+                        i.ProductId,
+                        i.ProductName,
+                        i.UnitPrice,
+                        i.Quantity,
+                        i.TotalPrice,
+                        i.CreatedAt
+                    }).ToList()
+                })
                 .ToList();
 
             return Ok(new
@@ -65,7 +85,28 @@ public class SalesController : ControllerBase
             var userId = GetCurrentUserId();
             var order = _context.Orders
                 .Include(o => o.Items)
-                .FirstOrDefault(o => o.Id == id && o.UserId == userId);
+                .Where(o => o.Id == id && o.UserId == userId)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.UserId,
+                    o.Status,
+                    o.TotalAmount,
+                    o.Notes,
+                    o.CreatedAt,
+                    o.UpdatedAt,
+                    Items = o.Items.Select(i => new
+                    {
+                        i.Id,
+                        i.ProductId,
+                        i.ProductName,
+                        i.UnitPrice,
+                        i.Quantity,
+                        i.TotalPrice,
+                        i.CreatedAt
+                    }).ToList()
+                })
+                .FirstOrDefault();
 
             if (order == null)
             {
@@ -101,34 +142,33 @@ public class SalesController : ControllerBase
         {
             var userId = GetCurrentUserId();
 
-            // Verificar estoque para todos os itens antes de criar o pedido
-            foreach (var item in request.Items)
-            {
-                var stockAvailable = await _stockServiceClient.CheckStockAvailability(item.ProductId, item.Quantity);
-                if (!stockAvailable)
-                {
-                    return BadRequest(new
-                    {
-                        Success = false,
-                        Message = $"Insufficient stock for product {item.ProductName} (ID: {item.ProductId}). Requested: {item.Quantity}"
-                    });
-                }
-            }
+            // Async-first: não reservar sincronamente. Persistir pedido como Pending e publicar OrderCreatedEvent.
 
-            // Calcular o total
+            // Calcular o total e montar order items usando dados do stock-service
             decimal totalAmount = 0;
             var orderItems = new List<OrderItem>();
 
             foreach (var item in request.Items)
             {
-                var itemTotal = item.UnitPrice * item.Quantity;
+                // obter dados do produto do stock service (nome, preço)
+                var product = await _stockServiceClient.GetProductAsync(item.ProductId);
+                if (product == null)
+                {
+                    return BadRequest(new
+                    {
+                        Success = false,
+                        Message = $"Product not found (ID: {item.ProductId})"
+                    });
+                }
+
+                var itemTotal = product.Price * item.Quantity;
                 totalAmount += itemTotal;
 
                 orderItems.Add(new OrderItem
                 {
                     ProductId = item.ProductId,
-                    ProductName = item.ProductName,
-                    UnitPrice = item.UnitPrice,
+                    ProductName = product.Name,
+                    UnitPrice = product.Price,
                     Quantity = item.Quantity,
                     TotalPrice = itemTotal
                 });
@@ -264,6 +304,71 @@ public class SalesController : ControllerBase
         return Ok("Sales Service is running!");
     }
 
+    // POST: api/sales/pay/card - Pagar por cartão (simulado)
+    [HttpPost("pay/card")]
+    public async Task<IActionResult> PayWithCard([FromBody] PaymentRequest request)
+    {
+        return await ProcessPayment(request, "Card");
+    }
+
+    // POST: api/sales/pay/pix - Pagar por PIX (simulado)
+    [HttpPost("pay/pix")]
+    public async Task<IActionResult> PayWithPix([FromBody] PaymentRequest request)
+    {
+        return await ProcessPayment(request, "Pix");
+    }
+
+    // POST: api/sales/pay/boleto - Pagar por boleto bancário (simulado)
+    [HttpPost("pay/boleto")]
+    public async Task<IActionResult> PayWithBoleto([FromBody] PaymentRequest request)
+    {
+        return await ProcessPayment(request, "Boleto");
+    }
+
+    private async Task<IActionResult> ProcessPayment(PaymentRequest request, string method)
+    {
+        try
+        {
+            if (!request.Confirm)
+            {
+                return BadRequest(new { Success = false, Message = "Payment not confirmed" });
+            }
+
+            var userId = GetCurrentUserId();
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == request.OrderId && o.UserId == userId);
+            if (order == null)
+            {
+                return NotFound(new { Success = false, Message = "Order not found" });
+            }
+
+            if (order.Status != "Pending")
+            {
+                return BadRequest(new { Success = false, Message = "Only pending orders can be confirmed" });
+            }
+
+            order.Status = "Confirmed";
+            order.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            // publicar evento de confirmação
+            var evt = new OrderConfirmedEvent
+            {
+                OrderId = order.Id,
+                UserId = order.UserId,
+                ConfirmedAt = order.UpdatedAt ?? DateTime.UtcNow,
+                Method = method
+            };
+
+            await _messagePublisher.PublishAsync(evt);
+
+            return Ok(new { Success = true, Message = "Payment confirmed and order updated" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Success = false, Message = $"Payment processing failed: {ex.Message}" });
+        }
+    }
+
     private int GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -285,7 +390,12 @@ public class CreateOrderRequest
 public class OrderItemRequest
 {
     public int ProductId { get; set; }
-    public string ProductName { get; set; } = string.Empty;
-    public decimal UnitPrice { get; set; }
     public int Quantity { get; set; }
 }
+
+public class PaymentRequest
+{
+    public int OrderId { get; set; }
+    public bool Confirm { get; set; }
+}
+

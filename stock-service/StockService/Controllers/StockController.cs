@@ -290,6 +290,136 @@ public class StockController : ControllerBase
         }
     }
 
+    // POST: api/stock/products/{id}/reserve - Reserva quantidade do estoque (chamado por SalesService)
+    [HttpPost("products/{id}/reserve")]
+    public async Task<IActionResult> ReserveStock(int id, [FromBody] ReserveStockRequest request)
+    {
+        try
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null || !product.IsActive)
+            {
+                return NotFound(new ProductResponse
+                {
+                    Success = false,
+                    Message = "Product not found"
+                });
+            }
+
+            if (request.Quantity <= 0)
+            {
+                return BadRequest(new ProductResponse
+                {
+                    Success = false,
+                    Message = "Quantity must be greater than zero"
+                });
+            }
+
+            if (product.StockQuantity < request.Quantity)
+            {
+                return BadRequest(new ProductResponse
+                {
+                    Success = false,
+                    Message = "Insufficient stock"
+                });
+            }
+
+            var previous = product.StockQuantity;
+            product.StockQuantity -= request.Quantity;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Publicar evento de atualização de estoque (Reserva)
+            var stockUpdatedEvent = new StockUpdatedEvent
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                PreviousStock = previous,
+                NewStock = product.StockQuantity,
+                Operation = "Reserved",
+                UpdatedAt = product.UpdatedAt ?? DateTime.UtcNow
+            };
+
+            await _messagePublisher.PublishAsync(stockUpdatedEvent);
+
+            return Ok(new ProductResponse
+            {
+                Success = true,
+                Message = "Stock reserved successfully",
+                Product = ProductDto.FromEntity(product)
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ProductResponse
+            {
+                Success = false,
+                Message = $"Failed to reserve stock: {ex.Message}"
+            });
+        }
+    }
+
+    // POST: api/stock/products/{id}/release - Libera quantidade do estoque (para rollback)
+    [HttpPost("products/{id}/release")]
+    public async Task<IActionResult> ReleaseStock(int id, [FromBody] ReleaseStockRequest request)
+    {
+        try
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound(new ProductResponse
+                {
+                    Success = false,
+                    Message = "Product not found"
+                });
+            }
+
+            if (request.Quantity <= 0)
+            {
+                return BadRequest(new ProductResponse
+                {
+                    Success = false,
+                    Message = "Quantity must be greater than zero"
+                });
+            }
+
+            var previous = product.StockQuantity;
+            product.StockQuantity += request.Quantity;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            var stockUpdatedEvent = new StockUpdatedEvent
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                PreviousStock = previous,
+                NewStock = product.StockQuantity,
+                Operation = "Released",
+                UpdatedAt = product.UpdatedAt ?? DateTime.UtcNow
+            };
+
+            await _messagePublisher.PublishAsync(stockUpdatedEvent);
+
+            return Ok(new ProductResponse
+            {
+                Success = true,
+                Message = "Stock released successfully",
+                Product = ProductDto.FromEntity(product)
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ProductResponse
+            {
+                Success = false,
+                Message = $"Failed to release stock: {ex.Message}"
+            });
+        }
+    }
+
     // DELETE: api/stock/products/{id} - Desativa produto (ADMIN only)
     [Authorize(Roles = "ADMIN")]
     [HttpDelete("products/{id}")]
