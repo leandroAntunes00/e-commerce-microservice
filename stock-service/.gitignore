@@ -302,6 +302,7 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+
 # ASP.NET Scaffolding
 Scaffold-DbContext.ps1
 

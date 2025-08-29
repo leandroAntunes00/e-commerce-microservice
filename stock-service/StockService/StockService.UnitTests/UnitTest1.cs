@@ -1,6 +1,7 @@
 using Xunit;
 using FluentAssertions;
-using StockService.Models;
+using StockService.Domain.Entities;
+using StockService.Application.DTOs;
 
 namespace StockService.UnitTests;
 

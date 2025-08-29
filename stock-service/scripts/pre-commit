@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Evita commits que contenham arquivos em bin/ ou obj/
+if git diff --cached --name-only | grep -E "(^|/)bin/|(^|/)obj/" >/dev/null; then
+  echo "Erro: não é permitido commitar arquivos em bin/ ou obj/. Remova-os do staging e tente novamente."
+  git diff --cached --name-only | grep -E "(^|/)bin/|(^|/)obj/" || true
+  exit 1
+fi
+
+exit 0

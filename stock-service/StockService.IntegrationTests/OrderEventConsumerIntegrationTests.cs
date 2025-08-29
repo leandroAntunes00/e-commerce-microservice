@@ -1,7 +1,7 @@
 using Messaging;
 using Messaging.Events;
 using StockService.Data;
-using StockService.Models;
+using StockService.Domain.Entities;
 using StockService.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

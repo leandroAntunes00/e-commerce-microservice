@@ -1,20 +1,22 @@
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using StockService.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace StockService.Data;
 
-public class StockDbContext : DbContext
+public static class DbSeeder
 {
-    public StockDbContext(DbContextOptions<StockDbContext> options) : base(options) { }
-
-    public DbSet<Product> Products { get; set; }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public static async Task SeedAsync(IServiceProvider services)
     {
-        base.OnModelCreating(modelBuilder);
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StockDbContext>();
 
-        // Criar alguns produtos de exemplo
-        modelBuilder.Entity<Product>().HasData(
+        if (await db.Products.AnyAsync())
+        {
+            return;
+        }
+
+        db.Products.AddRange(
             new Product
             {
                 Id = 1,
@@ -25,7 +27,7 @@ public class StockDbContext : DbContext
                 StockQuantity = 50,
                 ImageUrl = "https://example.com/images/galaxy-s23.jpg",
                 IsActive = true,
-                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = DateTime.UtcNow
             },
             new Product
             {
@@ -37,7 +39,7 @@ public class StockDbContext : DbContext
                 StockQuantity = 30,
                 ImageUrl = "https://example.com/images/dell-inspiron.jpg",
                 IsActive = true,
-                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = DateTime.UtcNow
             },
             new Product
             {
@@ -49,8 +51,10 @@ public class StockDbContext : DbContext
                 StockQuantity = 100,
                 ImageUrl = "https://example.com/images/sony-headphones.jpg",
                 IsActive = true,
-                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = DateTime.UtcNow
             }
         );
+
+        await db.SaveChangesAsync();
     }
 }

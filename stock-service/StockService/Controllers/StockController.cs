@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using StockService.Models;
+using StockService.Domain.Entities;
+using StockService.Application.DTOs;
 using StockService.Data;
 using System.ComponentModel.DataAnnotations;
 using Messaging;
@@ -46,7 +47,7 @@ public class StockController : ControllerBase
             {
                 Success = true,
                 Message = "Products retrieved successfully",
-                Products = products.Select(p => new Product
+                Products = products.Select(p => new ProductDto
                 {
                     Id = p.Id,
                     Name = p.Name,
@@ -92,7 +93,7 @@ public class StockController : ControllerBase
             {
                 Success = true,
                 Message = "Product retrieved successfully",
-                Product = product
+                Product = product is null ? null : ProductDto.FromEntity(product)
             });
         }
         catch (Exception ex)
@@ -130,7 +131,7 @@ public class StockController : ControllerBase
             {
                 Success = true,
                 Message = $"Products in category '{category}' retrieved successfully",
-                Products = products.Select(p => new Product
+                Products = products.Select(p => ProductDto.FromEntity(new Product
                 {
                     Id = p.Id,
                     Name = p.Name,
@@ -140,7 +141,7 @@ public class StockController : ControllerBase
                     StockQuantity = p.StockQuantity,
                     ImageUrl = p.ImageUrl,
                     CreatedAt = p.CreatedAt
-                }).ToList()
+                })).ToList()
             });
         }
         catch (Exception ex)
@@ -180,7 +181,7 @@ public class StockController : ControllerBase
                 {
                     Success = true,
                     Message = "Product created successfully",
-                    Product = product
+                    Product = ProductDto.FromEntity(product)
                 });
         }
         catch (Exception ex)
@@ -223,7 +224,7 @@ public class StockController : ControllerBase
             {
                 Success = true,
                 Message = "Product updated successfully",
-                Product = product
+                Product = ProductDto.FromEntity(product)
             });
         }
         catch (Exception ex)
@@ -276,7 +277,7 @@ public class StockController : ControllerBase
             {
                 Success = true,
                 Message = "Stock updated successfully",
-                Product = product
+                Product = ProductDto.FromEntity(product)
             });
         }
         catch (Exception ex)

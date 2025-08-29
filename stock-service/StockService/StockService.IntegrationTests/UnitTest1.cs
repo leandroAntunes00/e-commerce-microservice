@@ -1,6 +1,7 @@
 using Xunit;
 using FluentAssertions;
-using StockService.Models;
+using StockService.Domain.Entities;
+using StockService.Application.DTOs;
 
 namespace StockService.IntegrationTests;
 
@@ -63,7 +64,7 @@ public class ProductModelIntegrationTests
         {
             Success = true,
             Message = "Operation successful",
-            Product = new Product { Id = 1, Name = "Test" }
+            Product = ProductDto.FromEntity(new Product { Id = 1, Name = "Test" })
         };
 
         var failureResponse = new ProductResponse
