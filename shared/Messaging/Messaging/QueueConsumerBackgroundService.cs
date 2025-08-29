@@ -40,17 +40,8 @@ namespace Messaging
 
             _channel.ExchangeDeclare(_settings.ExchangeName, "direct", durable: true, autoDelete: false);
             
-            var queueArgs = new Dictionary<string, object>
-            {
-                { "x-dead-letter-exchange", "" }, // Default exchange
-                { "x-dead-letter-routing-key", $"{QueueName}.dlq" }
-            };
-
-            _channel.QueueDeclare(QueueName, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
+            _channel.QueueDeclare(QueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
             
-            // Dead-letter queue
-            _channel.QueueDeclare($"{QueueName}.dlq", durable: true, exclusive: false, autoDelete: false);
-
             var routingKey = QueueName.Replace(_settings.QueuePrefix, "");
             _channel.QueueBind(QueueName, _settings.ExchangeName, routingKey);
 

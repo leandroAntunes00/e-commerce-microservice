@@ -13,7 +13,7 @@ namespace Messaging.IntegrationTests
 {
     public class MessagingIntegrationTests : IAsyncLifetime
     {
-        private readonly ServiceProvider _serviceProvider;
+        private readonly IServiceProvider _serviceProvider;
         private readonly IMessagePublisher _publisher;
         private readonly IHost _host;
         private static readonly TaskCompletionSource<OrderCreatedEvent> _messageReceivedTcs = new();
@@ -33,14 +33,18 @@ namespace Messaging.IntegrationTests
                 })
                 .Build();
 
-            var services = new ServiceCollection();
-            services.AddLogging(builder => builder.AddConsole());
-            services.AddRabbitMqMessaging(configuration);
-            services.AddHostedService<TestOrderConsumer>();
+            var host = Host.CreateDefaultBuilder()
+                .ConfigureServices((context, services) =>
+                {
+                    services.AddLogging(builder => builder.AddConsole());
+                    services.AddRabbitMqMessaging(configuration);
+                    services.AddHostedService<TestOrderConsumer>();
+                })
+                .Build();
 
-            _serviceProvider = services.BuildServiceProvider();
+            _serviceProvider = host.Services;
             _publisher = _serviceProvider.GetRequiredService<IMessagePublisher>();
-            _host = _serviceProvider.GetRequiredService<IHost>();
+            _host = host;
         }
 
         // Consumer de teste para validar o recebimento
@@ -73,7 +77,14 @@ namespace Messaging.IntegrationTests
         public async Task DisposeAsync()
         {
             await _host.StopAsync();
-            await _serviceProvider.DisposeAsync();
+            if (_host is IAsyncDisposable asyncDisposable)
+            {
+                await asyncDisposable.DisposeAsync();
+            }
+            else
+            {
+                _host.Dispose();
+            }
         }
 
         [Fact]

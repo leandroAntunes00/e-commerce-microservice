@@ -13,7 +13,7 @@ namespace Messaging.IntegrationTests
 {
     public class ErrorHandlingTests : IAsyncLifetime
     {
-        private readonly ServiceProvider _serviceProvider;
+        private readonly IServiceProvider _serviceProvider;
         private readonly IMessagePublisher _publisher;
         private readonly IHost _host;
         private static readonly TaskCompletionSource<OrderCreatedEvent> _dlqMessageReceivedTcs = new();
@@ -33,15 +33,19 @@ namespace Messaging.IntegrationTests
                 })
                 .Build();
 
-            var services = new ServiceCollection();
-            services.AddLogging(builder => builder.AddConsole());
-            services.AddRabbitMqMessaging(configuration);
-            services.AddHostedService<ErroringConsumer>();
-            services.AddHostedService<DlqConsumer>();
+            var host = Host.CreateDefaultBuilder()
+                .ConfigureServices((context, services) =>
+                {
+                    services.AddLogging(builder => builder.AddConsole());
+                    services.AddRabbitMqMessaging(configuration);
+                    services.AddHostedService<ErroringConsumer>();
+                    services.AddHostedService<DlqConsumer>();
+                })
+                .Build();
 
-            _serviceProvider = services.BuildServiceProvider();
+            _serviceProvider = host.Services;
             _publisher = _serviceProvider.GetRequiredService<IMessagePublisher>();
-            _host = _serviceProvider.GetRequiredService<IHost>();
+            _host = host;
         }
 
         // Consumidor que sempre falha, para forçar a mensagem para a DLQ
@@ -86,7 +90,14 @@ namespace Messaging.IntegrationTests
         public async Task DisposeAsync()
         {
             await _host.StopAsync();
-            await _serviceProvider.DisposeAsync();
+            if (_host is IAsyncDisposable asyncDisposable)
+            {
+                await asyncDisposable.DisposeAsync();
+            }
+            else
+            {
+                _host.Dispose();
+            }
         }
 
         [Fact]
