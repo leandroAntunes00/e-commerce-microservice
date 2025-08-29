@@ -317,4 +317,10 @@ tools/
 tmp/
 temp/
 
+# Docker overrides
+docker-compose.override.yml
+
+# Additional .NET artifacts
+*.publishsettings
+
 # End of .gitignore

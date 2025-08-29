@@ -175,3 +175,10 @@ docs/generated/
 coverage.json
 coverage.xml
 *.coverage
+
+# Docker overrides
+docker-compose.override.yml
+
+# Additional .NET artifacts
+*.binlog
+*.publishsettings
