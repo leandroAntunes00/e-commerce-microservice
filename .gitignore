@@ -182,3 +182,15 @@ docker-compose.override.yml
 # Additional .NET artifacts
 *.binlog
 *.publishsettings
+
+# Docs
+CLEAN_CODE_ARCHITECTURE.md
+COMUNICACAO_ASSINCRONA.md
+GUIA_EXECUCAO_E2E.md
+PLANO_PROJETO.md
+PORTAS.md
+RELATORIO_FUNCIONAL.md
+RESUMO_EXECUCAO_E2E.md
+SCRIPTS_TESTE.md
+TESTES_E2E.md
+VALIDACAO_E2E.md
