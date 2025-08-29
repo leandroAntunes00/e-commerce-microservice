@@ -63,6 +63,17 @@ public class Program
     // Register RabbitMQ consumer implementation so hosted services can resolve it
     builder.Services.AddTransient<IMessageConsumer, RabbitMqConsumer>();
 
+    // Register Domain Services
+    builder.Services.AddScoped<Domain.Interfaces.IOrderRepository, Infrastructure.Repositories.OrderRepository>();
+
+    // Register Application Services
+    builder.Services.AddScoped<Application.Services.IOrderQueryService, Application.Services.OrderQueryService>();
+
+    // Register Use Cases
+    builder.Services.AddScoped<Application.UseCases.ICreateOrderUseCase, Application.UseCases.CreateOrderUseCase>();
+    builder.Services.AddScoped<Application.UseCases.IProcessPaymentUseCase, Application.UseCases.ProcessPaymentUseCase>();
+    builder.Services.AddScoped<Application.UseCases.ICancelOrderUseCase, Application.UseCases.CancelOrderUseCase>();
+
         // Add HttpClient for service-to-service communication
         builder.Services.AddHttpClient("StockService", client =>
         {

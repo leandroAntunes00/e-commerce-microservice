@@ -4,6 +4,13 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AuthService.Data;
 using Microsoft.AspNetCore.Http;
+using AuthService.Domain.Interfaces;
+using AuthService.Domain.Entities;
+using AuthService.Domain.ValueObjects;
+using AuthService.Application.UseCases;
+using AuthService.Application.Dtos;
+using AuthService.Infrastructure.Repositories;
+using AuthService.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +47,21 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// Register Clean Architecture Dependencies
+
+// Infrastructure Layer
+builder.Services.AddScoped<AuthService.Domain.Interfaces.IUserRepository, AuthService.Infrastructure.Repositories.UserRepository>();
+builder.Services.AddScoped<AuthService.Domain.Interfaces.IJwtService, AuthService.Infrastructure.Services.JwtService>();
+builder.Services.AddScoped<AuthService.Domain.Interfaces.IPasswordService, AuthService.Infrastructure.Services.PasswordService>();
+
+// Application Layer
+builder.Services.AddScoped<AuthService.Application.UseCases.IRegisterUserUseCase, AuthService.Application.UseCases.RegisterUserUseCase>();
+builder.Services.AddScoped<AuthService.Application.UseCases.ILoginUserUseCase, AuthService.Application.UseCases.LoginUserUseCase>();
+builder.Services.AddScoped<AuthService.Application.UseCases.IValidateTokenUseCase, AuthService.Application.UseCases.ValidateTokenUseCase>();
+
+// HttpContext accessor for token validation
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
