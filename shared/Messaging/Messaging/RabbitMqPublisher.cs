@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -49,7 +50,16 @@ namespace Messaging
 
         public Task PublishAsync<T>(T message) where T : IEvent
         {
-            return PublishAsync(message, message.EventType.ToLowerInvariant());
+            // Convert EventType (PascalCase) to snake_case routing key (e.g. OrderReservationCompleted -> order_reservation_completed)
+            return PublishAsync(message, ToRoutingKey(message.EventType));
+        }
+
+        private string ToRoutingKey(string eventType)
+        {
+            if (string.IsNullOrWhiteSpace(eventType)) return string.Empty;
+            // Insert underscore between lower-to-upper transitions and lowercase the result
+            var withUnderscores = Regex.Replace(eventType, "([a-z0-9])([A-Z])", "$1_$2");
+            return withUnderscores.ToLowerInvariant();
         }
 
         public Task PublishAsync<T>(T message, string routingKey) where T : IEvent

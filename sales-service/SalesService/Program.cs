@@ -60,6 +60,9 @@ public class Program
     // Add RabbitMQ messaging using shared extension (registers connection manager and publisher)
     builder.Services.AddRabbitMqMessaging(builder.Configuration);
 
+    // Register RabbitMQ consumer implementation so hosted services can resolve it
+    builder.Services.AddTransient<IMessageConsumer, RabbitMqConsumer>();
+
         // Add HttpClient for service-to-service communication
         builder.Services.AddHttpClient("StockService", client =>
         {
