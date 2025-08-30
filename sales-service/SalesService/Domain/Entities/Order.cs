@@ -14,7 +14,7 @@ public class Order
 
     [Required]
     [MaxLength(50)]
-    public string Status { get; set; } = "Pending"; // Pending, Confirmed, Processing, Shipped, Delivered, Cancelled
+    public string Status { get; set; } = SalesService.Domain.Enums.OrderStatus.Pending.ToString();
 
     [Required]
     [Column(TypeName = "decimal(18,2)")]

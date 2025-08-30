@@ -59,7 +59,7 @@ public class CreateOrderUseCase : ICreateOrderUseCase
         var order = new Order
         {
             UserId = command.UserId,
-            Status = "Pending",
+            Status = SalesService.Domain.Enums.OrderStatus.Pending.ToString(),
             TotalAmount = totalAmount,
             Notes = command.Notes,
             Items = orderItems

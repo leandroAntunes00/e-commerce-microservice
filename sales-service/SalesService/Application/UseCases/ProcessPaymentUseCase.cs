@@ -31,12 +31,14 @@ public class ProcessPaymentUseCase : IProcessPaymentUseCase
             throw new ArgumentException("Order not found");
         }
 
-        if (order.Status != "Pending")
+        // Permitir confirmar pedidos apenas quando estiverem 'Reserved'
+        var reserved = SalesService.Domain.Enums.OrderStatus.Reserved.ToString();
+        if (order.Status != reserved)
         {
-            throw new InvalidOperationException("Only pending orders can be confirmed");
+            throw new InvalidOperationException("Only reserved orders can be confirmed");
         }
 
-        order.Status = "Confirmed";
+        order.Status = SalesService.Domain.Enums.OrderStatus.Confirmed.ToString();
         await _orderRepository.UpdateAsync(order);
 
         // Publish confirmation event

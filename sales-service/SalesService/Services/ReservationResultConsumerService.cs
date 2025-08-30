@@ -117,14 +117,14 @@ public class ReservationResultConsumerService : BackgroundService
 
         if (evt.Success)
         {
-            order.Status = "Reserved"; // indicates stock reserved
+            order.Status = SalesService.Domain.Enums.OrderStatus.Reserved.ToString(); // indicates stock reserved
             order.UpdatedAt = DateTime.UtcNow;
             await context.SaveChangesAsync();
             _logger.LogInformation($"Order {evt.OrderId} marked as Reserved");
         }
         else
         {
-            order.Status = "Cancelled";
+            order.Status = SalesService.Domain.Enums.OrderStatus.Cancelled.ToString();
             order.Notes = evt.Reason;
             order.UpdatedAt = DateTime.UtcNow;
             await context.SaveChangesAsync();

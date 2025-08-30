@@ -32,18 +32,20 @@ public class OrderEventConsumerService : BackgroundService
         _logger.LogInformation("Iniciando consumidor de eventos de pedido...");
 
         // Criar consumer com retry para não derrubar o host se RabbitMQ ainda não estiver pronto
-        IMessageConsumer? consumer = null;
+        // Nota: vamos criar uma instância de consumer por fila para permitir múltiplos consumidores
+        var consumers = new System.Collections.Generic.List<IMessageConsumer>();
+        var scopes = new System.Collections.Generic.List<IServiceScope>();
+        IMessageConsumer? probe = null;
         int retryCount = 0;
         const int maxRetries = 30; // Máximo de 30 tentativas (60 segundos)
 
-    while (!stoppingToken.IsCancellationRequested && consumer == null && retryCount < maxRetries)
+        while (!stoppingToken.IsCancellationRequested && probe == null && retryCount < maxRetries)
         {
             try
             {
-        // Resolve consumer from DI inside a scope so its dependencies are injected
-        using var scope = _serviceProvider.CreateScope();
-        consumer = scope.ServiceProvider.GetRequiredService<IMessageConsumer>();
-        _logger.LogInformation("Consumidor RabbitMQ resolvido via DI com sucesso.");
+                using var scope = _serviceProvider.CreateScope();
+                probe = scope.ServiceProvider.GetRequiredService<IMessageConsumer>();
+                _logger.LogInformation("Consumidor RabbitMQ resolvido via DI com sucesso.");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -57,7 +59,7 @@ public class OrderEventConsumerService : BackgroundService
             }
         }
 
-        if (consumer == null)
+        if (probe == null)
         {
             _logger.LogError("Não foi possível inicializar o consumidor de eventos de pedido; saindo.");
             return;
@@ -65,8 +67,12 @@ public class OrderEventConsumerService : BackgroundService
 
         try
         {
-            // Consumir eventos OrderCreated
-            await consumer.StartConsumingAsync(
+            // Consumir eventos OrderCreated usando um consumer dedicado
+            var scope1 = _serviceProvider.CreateScope();
+            scopes.Add(scope1);
+            var c1 = scope1.ServiceProvider.GetRequiredService<IMessageConsumer>();
+            consumers.Add(c1);
+            await c1.StartConsumingAsync(
                 queueName: $"{_rabbitMqSettings.QueuePrefix}order_created",
                 messageHandler: async (message) =>
                 {
@@ -84,8 +90,12 @@ public class OrderEventConsumerService : BackgroundService
                     }
                 });
 
-            // Consumir eventos OrderCancelled
-            await consumer.StartConsumingAsync(
+            // Consumir eventos OrderCancelled usando outro consumer dedicado
+            var scope2 = _serviceProvider.CreateScope();
+            scopes.Add(scope2);
+            var c2 = scope2.ServiceProvider.GetRequiredService<IMessageConsumer>();
+            consumers.Add(c2);
+            await c2.StartConsumingAsync(
                 queueName: $"{_rabbitMqSettings.QueuePrefix}order_cancelled",
                 messageHandler: async (message) =>
                 {
@@ -110,12 +120,27 @@ public class OrderEventConsumerService : BackgroundService
         {
             try
             {
-                if (consumer != null)
+                // Stop and dispose all consumers
+                foreach (var cstop in consumers)
                 {
-                    await consumer.StopConsumingAsync();
-                    (consumer as IDisposable)?.Dispose();
-                    _logger.LogInformation("Consumidor RabbitMQ finalizado.");
+                    try
+                    {
+                        await cstop.StopConsumingAsync();
+                        (cstop as IDisposable)?.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Erro ao parar consumer");
+                    }
                 }
+
+                // Dispose scopes
+                foreach (var s in scopes)
+                {
+                    try { s.Dispose(); } catch { }
+                }
+
+                _logger.LogInformation("Consumidor RabbitMQ finalizado.");
             }
             catch (Exception ex)
             {

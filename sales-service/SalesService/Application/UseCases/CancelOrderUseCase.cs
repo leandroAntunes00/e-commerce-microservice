@@ -1,5 +1,7 @@
 using SalesService.Application.Dtos;
 using SalesService.Domain.Interfaces;
+using Messaging;
+using Messaging.Events;
 
 namespace SalesService.Application.UseCases;
 
@@ -11,10 +13,12 @@ public interface ICancelOrderUseCase
 public class CancelOrderUseCase : ICancelOrderUseCase
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IMessagePublisher _messagePublisher;
 
-    public CancelOrderUseCase(IOrderRepository orderRepository)
+    public CancelOrderUseCase(IOrderRepository orderRepository, IMessagePublisher messagePublisher)
     {
         _orderRepository = orderRepository;
+        _messagePublisher = messagePublisher;
     }
 
     public async Task ExecuteAsync(CancelOrderCommand command)
@@ -25,12 +29,32 @@ public class CancelOrderUseCase : ICancelOrderUseCase
             throw new ArgumentException("Order not found");
         }
 
-        if (order.Status != "Pending")
+        var pending = SalesService.Domain.Enums.OrderStatus.Pending.ToString();
+        var reserved = SalesService.Domain.Enums.OrderStatus.Reserved.ToString();
+
+        if (order.Status != pending && order.Status != reserved)
         {
-            throw new InvalidOperationException("Only pending orders can be cancelled");
+            throw new InvalidOperationException("Only pending or reserved orders can be cancelled");
         }
 
-        order.Status = "Cancelled";
+        order.Status = SalesService.Domain.Enums.OrderStatus.Cancelled.ToString();
         await _orderRepository.UpdateAsync(order);
+
+        // Publish OrderCancelledEvent so other services (e.g., Stock) can react and release reserved stock
+        var evt = new OrderCancelledEvent
+        {
+            OrderId = order.Id,
+            UserId = order.UserId,
+            Items = order.Items.Select(i => new OrderItemEvent
+            {
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice
+            }).ToList(),
+            CancelledAt = DateTime.UtcNow
+        };
+
+        await _messagePublisher.PublishAsync(evt);
     }
 }

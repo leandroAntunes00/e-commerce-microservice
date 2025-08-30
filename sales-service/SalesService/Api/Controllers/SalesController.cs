@@ -226,6 +226,15 @@ public class SalesController : ControllerBase
                 Message = ex.Message
             });
         }
+        catch (InvalidOperationException ex)
+        {
+            // Erro previsível (por exemplo: ordem não está em status Pending)
+            return BadRequest(new
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
         catch (Exception ex)
         {
             return StatusCode(500, new
@@ -268,6 +277,15 @@ public class SalesController : ControllerBase
                 Message = ex.Message
             });
         }
+        catch (InvalidOperationException ex)
+        {
+            // Erro previsível (por exemplo: ordem não está em status Pending)
+            return BadRequest(new
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
         catch (Exception ex)
         {
             return StatusCode(500, new
@@ -280,7 +298,7 @@ public class SalesController : ControllerBase
 
     // PUT: api/sales/pay/confirm - Confirmar pagamento (simulado)
     [HttpPut("pay/confirm")]
-    public async Task<IActionResult> ConfirmPayment([FromBody] ConfirmPaymentRequest request)
+    public IActionResult ConfirmPayment([FromBody] ConfirmPaymentRequest request)
     {
         try
         {
