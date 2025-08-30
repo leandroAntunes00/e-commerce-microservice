@@ -34,8 +34,8 @@ ENV RabbitMQ__Port=5672
 
 EXPOSE 80
 
-# Health check
+# Health check (rota do controller)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:80/health || exit 1
+    CMD curl -f http://localhost:80/api/sales/health || exit 1
 
 ENTRYPOINT ["dotnet", "SalesService.dll"]

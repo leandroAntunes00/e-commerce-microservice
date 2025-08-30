@@ -1,24 +1,22 @@
-# Multi-stage build para StockService
+# Multi-stage build para StockService - VERSÃO OTIMIZADA
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copiar arquivos de projeto primeiro (para cache de layers)
-COPY ["stock-service/StockService/StockService.csproj", "stock-service/StockService/"]
-COPY ["stock-service/StockService/appsettings*.json", "stock-service/StockService/"]
+# Copiar apenas arquivos essenciais primeiro
+# Copiar todo o diretório stock-service para preservar caminhos relativos entre projetos
+COPY ["stock-service/", "./stock-service/"]
 
-# Se houver projetos compartilhados, copiá-los também
-COPY ["shared/", "shared/"]
+# Copiar projects compartilhados
+COPY ["shared/", "./shared/"]
 
-# Restaurar dependências (cache layer)
-RUN dotnet restore "stock-service/StockService/StockService.csproj"
+# Restaurar dependências usando o caminho original do projeto dentro de /src
+RUN dotnet restore "./stock-service/StockService/StockService.csproj"
 
-# Copiar código fonte
-COPY ["stock-service/StockService/", "stock-service/StockService/"]
+# Copiar código fonte já está incluído ao copiar o diretório inteiro
 
 # Publicar aplicação
-RUN dotnet publish "stock-service/StockService/StockService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./stock-service/StockService/StockService.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 

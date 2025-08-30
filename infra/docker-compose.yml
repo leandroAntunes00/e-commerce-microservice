@@ -126,6 +126,7 @@ services:
     build:
       context: ..
       dockerfile: stock-service/StockService/Dockerfile
+      target: runtime
     container_name: stock-service
     environment:
       <<: *jwt-dev
