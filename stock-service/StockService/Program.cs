@@ -88,38 +88,4 @@ app.MapControllers();
 
 app.MapGet("/health", () => "Stock Service is running!");
 
-// Seed DB quando o RabbitMQ estiver disponível (apenas em Development por padrão)
-if (app.Environment.IsDevelopment())
-{
-    _ = Task.Run(async () =>
-    {
-        // Tentativas para esperar RabbitMQ subir (para que os testes E2E possam usar dados seed)
-        var maxRetries = 15;
-        var delay = TimeSpan.FromSeconds(2);
-        int tryCount = 0;
-
-        while (tryCount < maxRetries)
-        {
-            try
-            {
-                // Tenta resolver IMessagePublisher para verificar se infra de mensagens está pronta
-                using var scope = app.Services.CreateScope();
-                var publisher = scope.ServiceProvider.GetService<Messaging.IMessagePublisher>();
-                if (publisher != null)
-                {
-                    await StockService.Data.DbSeeder.SeedAsync(app.Services);
-                    break;
-                }
-            }
-            catch
-            {
-                // ignorar e tentar novamente
-            }
-
-            tryCount++;
-            await Task.Delay(delay);
-        }
-    });
-}
-
 app.Run();
