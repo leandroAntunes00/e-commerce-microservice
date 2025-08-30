@@ -7,7 +7,6 @@ using Messaging;
 using StockService.Domain.Interfaces;
 using StockService.Domain.Entities;
 using StockService.Application.UseCases;
-using StockService.Application.Dtos;
 using StockService.Application.DTOs;
 using StockService.Infrastructure.Repositories;
 using StockService.Services;

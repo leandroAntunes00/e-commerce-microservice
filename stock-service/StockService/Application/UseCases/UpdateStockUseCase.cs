@@ -1,4 +1,4 @@
-using StockService.Application.Dtos;
+using StockService.Application.DTOs;
 using StockService.Domain.Interfaces;
 
 namespace StockService.Application.UseCases;

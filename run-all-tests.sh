@@ -62,10 +62,10 @@ run_unit_tests() {
     log "=== EXECUTANDO TESTES UNITÁRIOS ==="
 
     local unit_test_projects=(
-        "/home/leandro/Imagens/micro/auth-service/AuthService/AuthService.UnitTests:AuthService"
-        "/home/leandro/Imagens/micro/stock-service/StockService/StockService.UnitTests:StockService"
-        "/home/leandro/Imagens/micro/sales-service/SalesService.UnitTests:SalesService"
-        "/home/leandro/Imagens/micro/api-gateway/ApiGateway.UnitTests:ApiGateway"
+        "/home/leandro/Documentos/micro/auth-service/AuthService/AuthService.UnitTests:AuthService"
+        "/home/leandro/Documentos/micro/stock-service/StockService/StockService.UnitTests:StockService"
+        "/home/leandro/Documentos/micro/sales-service/SalesService.UnitTests:SalesService"
+        "/home/leandro/Documentos/micro/api-gateway/ApiGateway.UnitTests:ApiGateway"
     )
 
     local failed_tests=()
@@ -91,10 +91,10 @@ run_integration_tests() {
     log "=== EXECUTANDO TESTES DE INTEGRAÇÃO ==="
 
     local integration_test_projects=(
-        "/home/leandro/Imagens/micro/auth-service/AuthService/AuthService.IntegrationTests:AuthService"
-        "/home/leandro/Imagens/micro/stock-service/StockService/StockService.IntegrationTests:StockService"
-        "/home/leandro/Imagens/micro/sales-service/SalesService.IntegrationTests:SalesService"
-        "/home/leandro/Imagens/micro/api-gateway/ApiGateway.IntegrationTests:ApiGateway"
+        "/home/leandro/Documentos/micro/auth-service/AuthService/AuthService.IntegrationTests:AuthService"
+        "/home/leandro/Documentos/micro/stock-service/StockService/StockService.IntegrationTests:StockService"
+        "/home/leandro/Documentos/micro/sales-service/SalesService.IntegrationTests:SalesService"
+        "/home/leandro/Documentos/micro/api-gateway/ApiGateway.IntegrationTests:ApiGateway"
     )
 
     local failed_tests=()
@@ -120,10 +120,10 @@ run_e2e_tests() {
     log "=== EXECUTANDO TESTES E2E ==="
 
     local e2e_test_projects=(
-        "/home/leandro/Imagens/micro/auth-service/AuthService/AuthService.E2ETests:AuthService"
-        "/home/leandro/Imagens/micro/stock-service/StockService/StockService.E2ETests:StockService"
-        "/home/leandro/Imagens/micro/sales-service/SalesService.E2ETests:SalesService"
-        "/home/leandro/Imagens/micro/api-gateway/ApiGateway.E2ETests:ApiGateway"
+        "/home/leandro/Documentos/micro/auth-service/AuthService/AuthService.E2ETests:AuthService"
+        "/home/leandro/Documentos/micro/stock-service/StockService/StockService.E2ETests:StockService"
+        "/home/leandro/Documentos/micro/sales-service/SalesService.E2ETests:SalesService"
+        "/home/leandro/Documentos/micro/api-gateway/ApiGateway.E2ETests:ApiGateway"
     )
 
     local failed_tests=()
@@ -149,7 +149,7 @@ run_functional_e2e_tests() {
     log "=== EXECUTANDO TESTES E2E FUNCIONAIS (Cenários Reais) ==="
 
     # Verificar se os scripts E2E existem
-    if [ ! -f "/home/leandro/Imagens/micro/setup-e2e-environment.sh" ]; then
+    if [ ! -f "/home/leandro/Documentos/micro/setup-e2e-environment.sh" ]; then
         error "Scripts E2E não encontrados. Execute primeiro a configuração."
         return 1
     fi
@@ -301,5 +301,6 @@ main() {
 }
 
 # Executar função principal com os argumentos passados
-main "$@"</content>
-<parameter name="filePath">/home/leandro/Imagens/micro/run-all-tests.sh
+
+# Executar função principal com os argumentos passados
+main "$@"

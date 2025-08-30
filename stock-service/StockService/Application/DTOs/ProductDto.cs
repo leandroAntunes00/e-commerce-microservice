@@ -27,21 +27,3 @@ public class ProductDto
         UpdatedAt = p.UpdatedAt
     };
 }
-
-public class ProductResponse
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public ProductDto? Product { get; set; }
-    public List<ProductDto>? Products { get; set; }
-}
-
-public class ReserveStockRequest
-{
-    public int Quantity { get; set; }
-}
-
-public class ReleaseStockRequest
-{
-    public int Quantity { get; set; }
-}

@@ -16,7 +16,7 @@ namespace Messaging
         private readonly ILogger _logger;
         private readonly IRabbitMqConnectionManager _connectionManager;
         private readonly RabbitMqSettings _settings;
-    private IModel? _channel;
+        private IModel? _channel;
 
         protected abstract string QueueName { get; }
         protected abstract Task<bool> HandleMessageAsync(string message, IBasicProperties properties);

@@ -2,6 +2,7 @@ using Xunit;
 using FluentAssertions;
 using StockService.Domain.Entities;
 using StockService.Application.DTOs;
+using StockService.Api.Dtos;
 
 namespace StockService.IntegrationTests;
 

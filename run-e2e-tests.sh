@@ -11,8 +11,6 @@ if [ "$1" = "help" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo "Este script executa:"
     echo "  - AuthService: Unitários, Integração, E2E"
     echo "  - StockService: Unitários, Integração, E2E"
-    echo "  - ApiGateway: Integração, E2E"
-    echo "  - Messaging: Integração (se disponível)"
     exit 0
 fi
 
@@ -65,10 +63,6 @@ test_projects=(
     "stock-service/StockService/StockService.UnitTests/StockService.UnitTests.csproj:StockService Unitários"
     "stock-service/StockService/StockService.IntegrationTests/StockService.IntegrationTests.csproj:StockService Integração"
     "stock-service/StockService/StockService.E2ETests/StockService.E2ETests.csproj:StockService E2E"
-
-    # ApiGateway - Integração e E2E funcionando
-    "api-gateway/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj:ApiGateway Integração"
-    "api-gateway/ApiGateway.E2ETests/ApiGateway.E2ETests.csproj:ApiGateway E2E"
 )
 
 # Executar testes
@@ -112,14 +106,12 @@ if [ ${#failed_projects[@]} -eq 0 ]; then
     echo "📊 Resumo dos Testes:"
     echo "   ✅ AuthService: Unitários, Integração, E2E"
     echo "   ✅ StockService: Unitários, Integração, E2E"
-    echo "   ✅ ApiGateway: Integração, E2E"
     echo ""
     echo "🏆 Todos os $total_projects projetos de teste passaram!"
     echo ""
     echo "📋 Testes executados:"
     echo "   • AuthService: 3 tipos (Unitários, Integração, E2E)"
     echo "   • StockService: 3 tipos (Unitários, Integração, E2E)"
-    echo "   • ApiGateway: 2 tipos (Integração, E2E)"
     echo "   • Total: $total_projects projetos testados"
 else
     echo ""

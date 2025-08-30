@@ -17,7 +17,7 @@ namespace Messaging
     {
         private readonly ConnectionFactory _connectionFactory;
         private readonly ILogger<RabbitMqConnectionManager> _logger;
-    private IConnection? _connection;
+        private IConnection? _connection;
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
         private bool _disposed;
 

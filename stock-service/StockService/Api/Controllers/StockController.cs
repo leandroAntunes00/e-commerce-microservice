@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using StockService.Api.Dtos;
 using StockService.Application.UseCases;
-using StockService.Application.Dtos;
+using StockService.Application.DTOs;
 using Messaging;
 using Messaging.Events;
 
