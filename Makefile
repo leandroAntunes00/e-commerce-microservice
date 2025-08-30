@@ -22,8 +22,9 @@ help: ## Mostra esta ajuda
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(YELLOW)Exemplos de uso:$(NC)"
-	@echo "  make build        # Construir imagens"
-	@echo "  make up           # Subir containers"
+	@echo "  make build-up    # Construir imagens E subir (recomendado primeiro uso)"
+	@echo "  make build        # Apenas construir imagens"
+	@echo "  make up           # Subir containers (imagens já construídas)"
 	@echo "  make rebuild      # Reconstruir e subir"
 	@echo "  make down         # Parar containers"
 	@echo "  make clean        # Limpar tudo"
@@ -34,8 +35,17 @@ build: ## Construir todas as imagens Docker
 	docker compose -f $(COMPOSE_FILE) build --pull
 	@echo "$(GREEN)✅ Imagens construídas com sucesso!$(NC)"
 
-up: ## Subir todos os containers em background
+build-up: ## Construir imagens e subir containers (recomendado para primeira vez)
+	@echo "$(BLUE)🔨 Construindo imagens e subindo containers...$(NC)"
+	docker compose -f $(COMPOSE_FILE) build --pull
+	docker compose -f $(COMPOSE_FILE) up -d
+	@echo "$(GREEN)✅ Build e inicialização completos!$(NC)"
+	@echo "$(YELLOW)📊 Status dos serviços:$(NC)"
+	@docker compose -f $(COMPOSE_FILE) ps
+
+up: ## Subir todos os containers em background (requer imagens já construídas)
 	@echo "$(BLUE)🚀 Subindo containers...$(NC)"
+	@echo "$(YELLOW)💡 Dica: Se as imagens não existirem, use 'make build-up' primeiro$(NC)"
 	docker compose -f $(COMPOSE_FILE) up -d
 	@echo "$(GREEN)✅ Containers iniciados!$(NC)"
 	@echo "$(YELLOW)📊 Status dos serviços:$(NC)"

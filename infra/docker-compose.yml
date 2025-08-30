@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Shared JWT environment for local development (anchor)
 # anchor contains plain key-values so we can merge into each service.environment
 x-jwt: &jwt-dev

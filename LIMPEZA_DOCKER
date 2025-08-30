@@ -1,0 +1,138 @@
+# 🐳 GUIA COMPLETO DE LIMPEZA DO DOCKER
+# Para Iniciantes - Comandos Essenciais para Manutenção
+
+echo "=========================================="
+echo "🐳 LIMPEZA PROFUNDA DO DOCKER"
+echo "=========================================="
+echo ""
+
+# 1. VERIFICAR ESPAÇO ATUAL
+echo "📊 1. VERIFICANDO ESPAÇO ATUAL OCUPADO:"
+echo "Comando: docker system df"
+echo "Por que? Mostra quanto espaço cada componente do Docker está usando"
+echo "Quando usar? Sempre antes e depois da limpeza para ver a diferença"
+echo ""
+docker system df
+echo ""
+
+# 2. VER IMAGENS ATUAIS
+echo "🖼️  2. VERIFICANDO IMAGENS INSTALADAS:"
+echo "Comando: docker image ls"
+echo "Por que? Lista todas as imagens locais com tamanho e data"
+echo "Quando usar? Para ver quais imagens você tem antes de limpar"
+echo ""
+docker image ls
+echo ""
+
+# 3. LIMPAR IMAGENS NÃO UTILIZADAS (DANGLING)
+echo "🗑️  3. LIMPANDO IMAGENS NÃO UTILIZADAS:"
+echo "Comando: docker image prune -f"
+echo "O que faz:"
+echo "  - Remove imagens 'dangling' (sem tag, órfãs)"
+echo "  - Remove imagens intermediárias de builds antigos"
+echo "  - Mantém todas as imagens que estão sendo usadas"
+echo "Por que importante? Libera espaço de imagens esquecidas"
+echo "Quando usar? Regularmente, especialmente após muitos builds"
+echo ""
+docker image prune -f
+echo ""
+
+# 4. LIMPAR CONTAINERS PARADOS
+echo "📦 4. LIMPANDO CONTAINERS PARADOS:"
+echo "Comando: docker container prune -f"
+echo "O que faz:"
+echo "  - Remove containers no estado 'exited' ou 'stopped'"
+echo "  - Mantém containers em execução"
+echo "  - Remove logs antigos dos containers"
+echo "Por que importante? Containers parados ocupam espaço desnecessário"
+echo "Quando usar? Após testes ou desenvolvimento"
+echo ""
+docker container prune -f
+echo ""
+
+# 5. LIMPAR VOLUMES NÃO UTILIZADOS
+echo "💾 5. LIMPANDO VOLUMES ORFÃOS:"
+echo "Comando: docker volume prune -f"
+echo "O que faz:"
+echo "  - Remove volumes não conectados a nenhum container"
+echo "  - Mantém volumes de containers em execução"
+echo "  - Remove dados antigos de bancos de dados, etc."
+echo "Por que importante? Volumes podem conter GBs de dados esquecidos"
+echo "Quando usar? Com cuidado! Verifique se não há dados importantes"
+echo ""
+docker volume prune -f
+echo ""
+
+# 6. LIMPAR REDES NÃO UTILIZADAS
+echo "🌐 6. LIMPANDO REDES NÃO UTILIZADAS:"
+echo "Comando: docker network prune -f"
+echo "O que faz:"
+echo "  - Remove redes criadas automaticamente que não são usadas"
+echo "  - Mantém redes padrão (bridge, host, none)"
+echo "  - Mantém redes de stacks em execução"
+echo "Por que importante? Redes antigas podem causar conflitos"
+echo "Quando usar? Após remover stacks ou containers"
+echo ""
+docker network prune -f
+echo ""
+
+# 7. LIMPAR CACHE DE BUILD
+echo "🔨 7. LIMPANDO CACHE DE BUILD:"
+echo "Comando: docker builder prune -f"
+echo "O que faz:"
+echo "  - Remove camadas intermediárias de builds"
+echo "  - Remove cache de Dockerfiles"
+echo "  - Mantém apenas builds recentes"
+echo "Por que importante? Builds antigos podem ocupar 10-50GB facilmente"
+echo "Quando usar? Após muitos builds de desenvolvimento"
+echo ""
+docker builder prune -f
+echo ""
+
+# 8. VERIFICAR ESPAÇO APÓS LIMPEZA
+echo "📊 8. VERIFICANDO ESPAÇO APÓS LIMPEZA:"
+echo "Comando: docker system df"
+echo "Por que? Comparar com o resultado inicial"
+echo "Quando usar? Sempre após limpeza para ver o resultado"
+echo ""
+docker system df
+echo ""
+
+# 9. LIMPEZA COMPLETA (OPCIONAL - MAIS AGRESSIVA)
+echo "💥 9. LIMPEZA COMPLETA (OPCIONAL - CUIDADO!):"
+echo "Comando: docker system prune -a"
+echo "O que faz:"
+echo "  - Remove TUDO não utilizado (imagens, containers, volumes, redes)"
+echo "  - Remove até imagens sem containers associados"
+echo "  - PERIGO: Pode remover imagens que você ainda precisa!"
+echo "Por que importante? Limpeza total do sistema"
+echo "Quando usar? APENAS se tiver certeza que não precisa de nada"
+echo ""
+echo "⚠️  ATENÇÃO: Este comando remove tudo não utilizado!"
+echo "   Use apenas se souber exatamente o que está fazendo."
+echo "   Comando comentado para segurança:"
+echo "# docker system prune -a"
+echo ""
+
+echo "=========================================="
+echo "✅ LIMPEZA CONCLUÍDA!"
+echo "=========================================="
+echo ""
+echo "💡 DICAS PARA MANUTENÇÃO:"
+echo "1. Execute limpeza semanal: docker system prune"
+echo "2. Monitore espaço: docker system df"
+echo "3. Use .dockerignore para builds menores"
+echo "4. Remova containers após uso: docker rm <container>"
+echo "5. Limpe builds antigos: docker image prune -a"
+echo ""
+echo "🔧 COMANDOS ÚTEIS DO DIA A DIA:"
+echo "docker ps -a          # Ver todos containers"
+echo "docker images         # Ver todas imagens"
+echo "docker volume ls      # Ver volumes"
+echo "docker network ls     # Ver redes"
+echo "docker stats          # Ver uso de recursos"
+echo ""
+echo "📚 PARA APRENDER MAIS:"
+echo "- Documentação: https://docs.docker.com/"
+echo "- Docker Cheat Sheet: Busque no Google"
+echo "- Prática: Use docker run hello-world"
