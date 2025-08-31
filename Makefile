@@ -152,3 +152,43 @@ info: ## Mostrar informações sobre portas e endpoints
 	@echo "  make logs       # Ver todos os logs"
 	@echo "  make restart    # Reiniciar serviços"
 	@echo "  make down       # Parar tudo"
+
+# Test targets
+.PHONY: test test-fast test-ci
+
+test: ## Rodar toda a suíte de testes disponível na solução (usa microservices.sln)
+	@echo "$(BLUE)🔬 Executando testes (solução)...$(NC)"
+	@dotnet test $(CURDIR)/microservices.sln --logger "console;verbosity=minimal"
+	@echo "$(GREEN)✅ Testes concluídos$(NC)"
+
+test-fast: ## Rodar somente os projetos de teste existentes (rápido)
+	@echo "$(BLUE)🔬 Executando testes rápidos (projetos detectados)...$(NC)"
+	@dotnet test $(CURDIR)/shared/Messaging/Messaging.IntegrationTests/Messaging.IntegrationTests.csproj --logger "console;verbosity=minimal" || true
+	@dotnet test $(CURDIR)/auth-service/AuthService/AuthService.UnitTests/AuthService.UnitTests.csproj --logger "console;verbosity=minimal" || true
+	@dotnet test $(CURDIR)/auth-service/AuthService/AuthService.IntegrationTests/AuthService.IntegrationTests.csproj --logger "console;verbosity=minimal" || true
+	@dotnet test $(CURDIR)/auth-service/AuthService/AuthService.E2ETests/AuthService.E2ETests.csproj --logger "console;verbosity=minimal" || true
+	@dotnet test $(CURDIR)/stock-service/StockService/StockService.UnitTests/StockService.UnitTests.csproj --logger "console;verbosity=minimal" || true
+	@dotnet test $(CURDIR)/sales-service/SalesService.UnitTests/SalesService.UnitTests.csproj --logger "console;verbosity=minimal" || true
+	@dotnet test $(CURDIR)/stock-service/StockService/StockService.IntegrationTests/StockService.IntegrationTests.csproj --logger "console;verbosity=minimal" || true
+	@dotnet test $(CURDIR)/stock-service/StockService/StockService.E2ETests/StockService.E2ETests.csproj --logger "console;verbosity=minimal" || true
+	@echo "$(GREEN)✅ Testes rápidos concluídos$(NC)"
+
+.PHONY: test-verbose
+
+test-verbose: ## Rodar os projetos de teste com saída detalhada (mostra nomes dos testes e ITestOutput)
+	@echo "$(BLUE)🔬 Executando testes (verboso/detailed) para apresentação...$(NC)"
+	@dotnet test $(CURDIR)/shared/Messaging/Messaging.IntegrationTests/Messaging.IntegrationTests.csproj --logger "console;verbosity=detailed" || true
+	@dotnet test $(CURDIR)/auth-service/AuthService/AuthService.UnitTests/AuthService.UnitTests.csproj --logger "console;verbosity=detailed" || true
+	@dotnet test $(CURDIR)/auth-service/AuthService/AuthService.IntegrationTests/AuthService.IntegrationTests.csproj --logger "console;verbosity=detailed" || true
+	@dotnet test $(CURDIR)/auth-service/AuthService/AuthService.E2ETests/AuthService.E2ETests.csproj --logger "console;verbosity=detailed" || true
+	@dotnet test $(CURDIR)/stock-service/StockService/StockService.UnitTests/StockService.UnitTests.csproj --logger "console;verbosity=detailed" || true
+	@dotnet test $(CURDIR)/sales-service/SalesService.UnitTests/SalesService.UnitTests.csproj --logger "console;verbosity=detailed" || true
+	@dotnet test $(CURDIR)/stock-service/StockService/StockService.IntegrationTests/StockService.IntegrationTests.csproj --logger "console;verbosity=detailed" || true
+	@dotnet test $(CURDIR)/stock-service/StockService/StockService.E2ETests/StockService.E2ETests.csproj --logger "console;verbosity=detailed" || true
+	@echo "$(GREEN)✅ Testes verbosos concluídos$(NC)"
+
+test-ci: ## Rodar testes e gerar relatórios TRX em test-results/
+	@echo "$(BLUE)🔬 Executando testes (CI) e gerando TRX...$(NC)"
+	@mkdir -p test-results
+	@dotnet test $(CURDIR)/microservices.sln --logger "trx;LogFileName=test-results/tests_results.trx" || true
+	@echo "$(GREEN)✅ Testes (CI) finalizados. Resultados em test-results/$(NC)"

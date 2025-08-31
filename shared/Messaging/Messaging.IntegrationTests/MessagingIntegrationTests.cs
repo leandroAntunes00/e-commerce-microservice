@@ -16,7 +16,9 @@ namespace Messaging.IntegrationTests
         private readonly IServiceProvider _serviceProvider;
         private readonly IMessagePublisher _publisher;
         private readonly IHost _host;
-        private static readonly TaskCompletionSource<OrderCreatedEvent> _messageReceivedTcs = new();
+    // TaskCompletionSource usada para sinalizar recebimento em cada execução de teste.
+    // Não readonly para permitir reinicialização entre runs e evitar estados residuais.
+    private static TaskCompletionSource<OrderCreatedEvent> _messageReceivedTcs = new();
 
         public MessagingIntegrationTests()
         {
@@ -47,10 +49,13 @@ namespace Messaging.IntegrationTests
             _host = host;
         }
 
-        // Consumer de teste para validar o recebimento
+            // Consumer de teste para validar o recebimento
         private class TestOrderConsumer : QueueConsumerBackgroundService
         {
-            protected override string QueueName => "test.ordercreated";
+            // Use routing key/queue name que segue a convenção usada pelo publisher (snake_case)
+            // Publisher converte EventType "OrderCreated" -> "order_created", então a fila deve usar
+            // QueuePrefix + "order_created". Aqui definimos nome explícito compatível.
+            protected override string QueueName => "test.order_created";
 
             public TestOrderConsumer(
                 ILogger<TestOrderConsumer> logger,
@@ -71,6 +76,9 @@ namespace Messaging.IntegrationTests
 
         public async Task InitializeAsync()
         {
+            // Resetar TCS para esta execução do teste (evita estado de execuções anteriores)
+            _messageReceivedTcs = new TaskCompletionSource<OrderCreatedEvent>();
+
             await _host.StartAsync();
         }
 

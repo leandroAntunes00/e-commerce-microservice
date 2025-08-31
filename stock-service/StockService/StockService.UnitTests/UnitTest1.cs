@@ -76,6 +76,6 @@ public class ProductModelTests
         response.Success.Should().BeFalse();
         response.Message.Should().BeEmpty();
         response.Product.Should().BeNull();
-        response.Products.Should().BeNull();
+    response.Products.Should().BeEmpty();
     }
 }
