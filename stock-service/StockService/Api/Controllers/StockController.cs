@@ -126,9 +126,9 @@ public class StockController : ControllerBase
         }
     }
 
-    // POST: api/stock/products - Cria novo produto (requer autenticação)
+    // POST: api/stock/products - Cria novo produto (requer autenticação de Admin)
     [HttpPost("products")]
-    [Authorize]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
     {
         try
@@ -172,9 +172,9 @@ public class StockController : ControllerBase
         }
     }
 
-    // PUT: api/stock/products/{id}/stock - Atualiza quantidade em estoque
+    // PUT: api/stock/products/{id}/stock - Atualiza quantidade em estoque (somente Admin)
     [HttpPut("products/{id}/stock")]
-    [Authorize]
+    [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> UpdateStock(int id, [FromBody] UpdateStockRequest request)
     {
         try
@@ -218,6 +218,6 @@ public class StockController : ControllerBase
     [HttpGet("health")]
     public IActionResult HealthCheck()
     {
-        return Ok("Stock Service is running with Clean Architecture!");
+        return Ok("Stock Service is running!");
     }
 }

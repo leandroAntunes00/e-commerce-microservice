@@ -79,11 +79,27 @@ status: ## Ver status atual dos containers
 	@echo ""
 	@echo "$(YELLOW)💡 Dica: Use 'make logs' para ver logs detalhados$(NC)"
 
-rebuild: ## Reconstruir imagens e subir containers
-	@echo "$(BLUE)🔄 Reconstruindo e subindo containers...$(NC)"
-	docker compose -f $(COMPOSE_FILE) down
-	docker compose -f $(COMPOSE_FILE) build --pull --no-cache
-	docker compose -f $(COMPOSE_FILE) up -d
+
+rebuild: ## Reconstruir imagens e subir containers (fluxo mais robusto)
+	@echo "$(BLUE)🔄 Reconstruindo e subindo containers (robusto)...$(NC)"
+	@bash -lc 'set -euo pipefail; \
+		echo "Stopping containers (ignore errors if already stopped)..."; \
+		docker compose -f "$(COMPOSE_FILE)" down --remove-orphans || true; \
+		echo "Pruning builder cache and unused images (may free space)..."; \
+		docker builder prune -af || true; \
+		docker image prune -af || true; \
+		echo "Building images (no cache, plain progress for clearer logs)..."; \
+		docker compose -f "$(COMPOSE_FILE)" build --pull --no-cache --progress=plain; \
+		echo "Starting containers (force recreate)..."; \
+		docker compose -f "$(COMPOSE_FILE)" up -d --remove-orphans --force-recreate; \
+		echo "Rebuild finished normally."'
+	@if [ $$? -ne 0 ]; then \
+		echo "$(RED)❌ Rebuild encontrou erros. Veja os logs acima.$(NC)"; \
+		echo "Dicas:"]; \
+		echo "  - Rode 'make logs' para ver logs dos serviços"; \
+		echo "  - Se houver falhas persistentes, execute 'make fresh-start' (perde dados)"; \
+		exit 1; \
+	fi
 	@echo "$(GREEN)✅ Reconstrução completa!$(NC)"
 	@echo "$(YELLOW)📊 Status dos serviços:$(NC)"
 	@docker compose -f $(COMPOSE_FILE) ps

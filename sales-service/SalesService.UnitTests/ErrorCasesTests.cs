@@ -79,7 +79,7 @@ public class ErrorCasesTests
         var orderRepoMock = new Mock<IOrderRepository>();
         var msgPublisherMock = new Mock<Messaging.IMessagePublisher>();
 
-        var order = new Order { Id = 8, UserId = 5, Status = SalesService.Domain.Enums.OrderStatus.Pending.ToString() };
+        var order = new Order { Id = 8, UserId = 5, Status = SalesService.Domain.Enums.OrderStatus.Pending.ToString(), TotalAmount = 20m };
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(8, 5)).ReturnsAsync(order);
 
         var useCase = new ProcessPaymentUseCase(orderRepoMock.Object, msgPublisherMock.Object);

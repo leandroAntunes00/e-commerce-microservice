@@ -31,6 +31,12 @@ public class ProcessPaymentUseCase : IProcessPaymentUseCase
             throw new ArgumentException("Order not found");
         }
 
+        // Validar se o valor do pagamento corresponde ao total do pedido
+        if (command.Amount != order.TotalAmount)
+        {
+            throw new InvalidOperationException("Payment amount does not match order total");
+        }
+
         // Permitir confirmar pedidos apenas quando estiverem 'Reserved'
         var reserved = SalesService.Domain.Enums.OrderStatus.Reserved.ToString();
         if (order.Status != reserved)
