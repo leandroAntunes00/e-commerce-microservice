@@ -52,9 +52,9 @@ public class ProcessPaymentUseCase : IProcessPaymentUseCase
         await _orderRepository.UpdateAsync(order);
 
         // Publish confirmation event
-    var evt = _mapper.Map<OrderConfirmedEvent>(order);
-    evt.Method = command.PaymentMethod;
+        var evt = _mapper.Map<OrderConfirmedEvent>(order);
+        evt.Method = command.PaymentMethod;
 
-    await _messagePublisher.PublishAsync(evt);
+        await _messagePublisher.PublishAsync(evt);
     }
 }

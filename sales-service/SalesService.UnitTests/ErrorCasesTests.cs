@@ -24,7 +24,7 @@ public class ErrorCasesTests
 
         stockClientMock.Setup(s => s.GetProductAsync(99)).ReturnsAsync((StockProductResponse?)null);
 
-    var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new CreateOrderUseCase(orderRepoMock.Object, stockClientMock.Object, msgPublisherMock.Object, mapper);
         var command = new CreateOrderCommand { UserId = 1, Items = new List<OrderItemCommand> { new OrderItemCommand { ProductId = 99, Quantity = 1 } } };
@@ -40,7 +40,7 @@ public class ErrorCasesTests
 
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(5, 2)).ReturnsAsync((Order?)null);
 
-    var mapper2 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper2 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new CancelOrderUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper2);
         var command = new CancelOrderCommand { OrderId = 5, UserId = 2 };
@@ -57,7 +57,7 @@ public class ErrorCasesTests
         var order = new Order { Id = 6, UserId = 3, Status = SalesService.Domain.Enums.OrderStatus.Confirmed.ToString() };
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(6, 3)).ReturnsAsync(order);
 
-    var mapper3 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper3 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new CancelOrderUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper3);
         var command = new CancelOrderCommand { OrderId = 6, UserId = 3 };
@@ -73,7 +73,7 @@ public class ErrorCasesTests
 
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(7, 4)).ReturnsAsync((Order?)null);
 
-    var mapper4 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper4 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new ProcessPaymentUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper4);
         var command = new ProcessPaymentCommand { OrderId = 7, UserId = 4, PaymentMethod = "CARD", Amount = 10m };
@@ -90,7 +90,7 @@ public class ErrorCasesTests
         var order = new Order { Id = 8, UserId = 5, Status = SalesService.Domain.Enums.OrderStatus.Pending.ToString(), TotalAmount = 20m };
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(8, 5)).ReturnsAsync(order);
 
-    var mapper5 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper5 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new ProcessPaymentUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper5);
         var command = new ProcessPaymentCommand { OrderId = 8, UserId = 5, PaymentMethod = "PIX", Amount = 20m };

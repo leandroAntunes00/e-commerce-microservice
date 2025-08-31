@@ -151,4 +151,41 @@ public class SalesControllerIntegrationTests : IClassFixture<TestWebAppFactory>
         json.Should().Contain("Validation failed");
         json.Should().Contain("At least one item is required");
     }
+
+    [Fact]
+    public async Task PayWithCard_ForExistingPendingOrder_ReturnsSuccess()
+    {
+        // Arrange - seed an order for user 1
+        var scope = _factory.Services.CreateScope();
+        using (scope)
+        {
+            var ctx = scope.ServiceProvider.GetRequiredService<SalesService.Data.SalesDbContext>();
+            ctx.Orders.Add(new SalesService.Domain.Entities.Order
+            {
+                Id = 9999,
+                UserId = 1,
+                Status = SalesService.Domain.Enums.OrderStatus.Reserved.ToString(),
+                TotalAmount = 499m
+            });
+            await ctx.SaveChangesAsync();
+        }
+
+        var client = _factory.CreateClient();
+
+        var request = new PaymentRequest { OrderId = 9999, Amount = 499m };
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/sales/pay/card", request);
+
+        // Read body for diagnostics
+        var contentString = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            Assert.True(false, $"Request failed ({(int)response.StatusCode}): {contentString}");
+        }
+
+        var body = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(contentString);
+        body.GetProperty("success").GetBoolean().Should().BeTrue();
+        body.GetProperty("message").GetString().Should().Contain("Payment processed successfully");
+    }
 }

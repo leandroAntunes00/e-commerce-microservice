@@ -66,28 +66,28 @@ public class Program
             });
         });
 
-    // Add RabbitMQ messaging using shared extension (registers connection manager and publisher)
-    builder.Services.AddRabbitMqMessaging(builder.Configuration);
+        // Add RabbitMQ messaging using shared extension (registers connection manager and publisher)
+        builder.Services.AddRabbitMqMessaging(builder.Configuration);
 
-    // Register RabbitMQ consumer implementation so hosted services can resolve it
-    builder.Services.AddTransient<IMessageConsumer, RabbitMqConsumer>();
+        // Register RabbitMQ consumer implementation so hosted services can resolve it
+        builder.Services.AddTransient<IMessageConsumer, RabbitMqConsumer>();
 
-    // Register Domain Services
-    builder.Services.AddScoped<Domain.Interfaces.IOrderRepository, Infrastructure.Repositories.OrderRepository>();
+        // Register Domain Services
+        builder.Services.AddScoped<Domain.Interfaces.IOrderRepository, Infrastructure.Repositories.OrderRepository>();
 
-    // Register Application Services
-    builder.Services.AddScoped<Application.Services.IOrderQueryService, Application.Services.OrderQueryService>();
+        // Register Application Services
+        builder.Services.AddScoped<Application.Services.IOrderQueryService, Application.Services.OrderQueryService>();
 
-    // Register AutoMapper
-    builder.Services.AddAutoMapper(typeof(SalesService.Application.Mappings.OrderProfile));
+        // Register AutoMapper
+        builder.Services.AddAutoMapper(typeof(SalesService.Application.Mappings.OrderProfile));
 
-    // Register Use Cases
-    builder.Services.AddScoped<Application.UseCases.ICreateOrderUseCase, Application.UseCases.CreateOrderUseCase>();
-    builder.Services.AddScoped<Application.UseCases.IProcessPaymentUseCase, Application.UseCases.ProcessPaymentUseCase>();
-    builder.Services.AddScoped<Application.UseCases.ICancelOrderUseCase, Application.UseCases.CancelOrderUseCase>();
-        
-    // Reservation result processor
-    builder.Services.AddScoped<IReservationResultProcessor, ReservationResultProcessor>();
+        // Register Use Cases
+        builder.Services.AddScoped<Application.UseCases.ICreateOrderUseCase, Application.UseCases.CreateOrderUseCase>();
+        builder.Services.AddScoped<Application.UseCases.IProcessPaymentUseCase, Application.UseCases.ProcessPaymentUseCase>();
+        builder.Services.AddScoped<Application.UseCases.ICancelOrderUseCase, Application.UseCases.CancelOrderUseCase>();
+
+        // Reservation result processor
+        builder.Services.AddScoped<IReservationResultProcessor, ReservationResultProcessor>();
 
         // Add HttpClient for service-to-service communication
         builder.Services.AddHttpClient("StockService", client =>
@@ -98,8 +98,8 @@ public class Program
 
         // Register StockServiceClient
         builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
-    // Register reservation result consumer
-    builder.Services.AddHostedService<ReservationResultConsumerService>();
+        // Register reservation result consumer
+        builder.Services.AddHostedService<ReservationResultConsumerService>();
 
         var app = builder.Build();
 

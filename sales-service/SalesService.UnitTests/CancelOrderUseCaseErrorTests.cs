@@ -23,7 +23,7 @@ public class CancelOrderUseCaseErrorTests
 
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(99, 1)).ReturnsAsync((Order?)null);
 
-    var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new CancelOrderUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper);
 
@@ -47,7 +47,7 @@ public class CancelOrderUseCaseErrorTests
         var order = new Order { Id = 20, UserId = 2, Status = SalesService.Domain.Enums.OrderStatus.Confirmed.ToString(), Items = new List<OrderItem>() };
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(20, 2)).ReturnsAsync(order);
 
-    var mapper2 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper2 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new CancelOrderUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper2);
 

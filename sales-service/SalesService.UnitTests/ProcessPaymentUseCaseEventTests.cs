@@ -24,7 +24,7 @@ public class ProcessPaymentUseCaseEventTests
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(200, 7)).ReturnsAsync(order);
         orderRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Order>())).Returns(Task.CompletedTask);
 
-    var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new ProcessPaymentUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper);
 

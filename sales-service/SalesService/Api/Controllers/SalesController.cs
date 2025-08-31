@@ -31,7 +31,7 @@ public class SalesController : ControllerBase
         _createOrderUseCase = createOrderUseCase;
         _processPaymentUseCase = processPaymentUseCase;
         _cancelOrderUseCase = cancelOrderUseCase;
-    _mapper = mapper;
+        _mapper = mapper;
     }
 
     // GET: api/sales/orders - Lista pedidos do usuário logado

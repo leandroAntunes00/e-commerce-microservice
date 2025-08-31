@@ -19,9 +19,9 @@ public class ReservationResultProcessorTests
     [Fact]
     public async Task ProcessAsync_WhenFailure_ShouldCancelOrderAndPublishEvent()
     {
-    // Arrange DI with InMemory DB using TestServiceProviderFactory
-    var dbName = "resv_proc_db_" + Guid.NewGuid();
-    var (sp, publisherMock) = SalesService.UnitTests.TestHelpers.TestServiceProviderFactory.Create(dbName);
+        // Arrange DI with InMemory DB using TestServiceProviderFactory
+        var dbName = "resv_proc_db_" + Guid.NewGuid();
+        var (sp, publisherMock) = SalesService.UnitTests.TestHelpers.TestServiceProviderFactory.Create(dbName);
 
         // Seed order
         using (var scope = sp.CreateScope())
@@ -34,12 +34,12 @@ public class ReservationResultProcessorTests
         // Create a SalesDbContext instance that points to the same in-memory database name
         var options = new DbContextOptionsBuilder<SalesDbContext>().UseInMemoryDatabase(dbName).Options;
         var ctx2 = new SalesDbContext(options);
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = loggerFactory.CreateLogger<ReservationResultProcessor>();
-    var publisher = sp.GetRequiredService<IMessagePublisher>();
-    var mapper = sp.GetRequiredService<AutoMapper.IMapper>();
+        var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger<ReservationResultProcessor>();
+        var publisher = sp.GetRequiredService<IMessagePublisher>();
+        var mapper = sp.GetRequiredService<AutoMapper.IMapper>();
 
-    var processor = new ReservationResultProcessor(ctx2, publisher, mapper, logger);
+        var processor = new ReservationResultProcessor(ctx2, publisher, mapper, logger);
 
         var existsBefore = await ctx2.Orders.AnyAsync(o => o.Id == 5001);
         Assert.True(existsBefore, "Seeded order not found in the same DbContext before processing");

@@ -44,8 +44,8 @@ public class CancelOrderUseCase : ICancelOrderUseCase
         await _orderRepository.UpdateAsync(order);
 
         // Publish OrderCancelledEvent so other services (e.g., Stock) can react and release reserved stock
-    var evt = _mapper.Map<OrderCancelledEvent>(order);
-    evt.CancelledAt = DateTime.UtcNow;
-    await _messagePublisher.PublishAsync(evt);
+        var evt = _mapper.Map<OrderCancelledEvent>(order);
+        evt.CancelledAt = DateTime.UtcNow;
+        await _messagePublisher.PublishAsync(evt);
     }
 }

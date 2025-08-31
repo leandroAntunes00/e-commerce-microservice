@@ -41,7 +41,7 @@ public class CreateOrderUseCaseTests
         orderRepoMock.Setup(r => r.CreateAsync(It.IsAny<Order>())).ReturnsAsync(createdOrder);
 
         // Arrange mapper
-    var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var useCase = new CreateOrderUseCase(orderRepoMock.Object, stockClientMock.Object, msgPublisherMock.Object, mapper);
 

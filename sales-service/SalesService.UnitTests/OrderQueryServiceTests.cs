@@ -36,7 +36,7 @@ public class OrderQueryServiceTests
 
         repoMock.Setup(r => r.GetByIdAndUserIdAsync(101, 7)).ReturnsAsync(order);
 
-    var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var service = new OrderQueryService(repoMock.Object, mapper);
 
@@ -68,7 +68,7 @@ public class OrderQueryServiceTests
 
         repoMock.Setup(r => r.GetByUserIdAsync(8)).ReturnsAsync(orders);
 
-    var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+        var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
 
         var service = new OrderQueryService(repoMock.Object, mapper);
 

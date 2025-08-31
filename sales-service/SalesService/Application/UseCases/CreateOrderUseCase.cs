@@ -72,8 +72,8 @@ public class CreateOrderUseCase : ICreateOrderUseCase
         var createdOrder = await _orderRepository.CreateAsync(order);
 
         // Publish event
-    var orderCreatedEvent = _mapper.Map<OrderCreatedEvent>(createdOrder);
-    await _messagePublisher.PublishAsync(orderCreatedEvent);
+        var orderCreatedEvent = _mapper.Map<OrderCreatedEvent>(createdOrder);
+        await _messagePublisher.PublishAsync(orderCreatedEvent);
 
         return createdOrder.Id;
     }
