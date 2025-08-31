@@ -276,18 +276,111 @@ Resposta:
 
 ## 🧪 Testes
 
-O projeto inclui testes unitários, de integração e end-to-end:
+O projeto inclui testes unitários, de integração e end-to-end com diferentes níveis de dependência:
 
+### ✅ Testes que NÃO precisam de Docker (Containers)
 ```bash
-# Testes unitários detalhados
-make test-verbose
+# Testes Unitários - Rápidos e isolados
+make test-fast  # Executa apenas testes unitários
 
-# Todos os testes
-make test
-
-# Testes CI (com relatórios)
-make test-ci
+# Ou executar projetos específicos:
+dotnet test sales-service/SalesService.UnitTests/SalesService.UnitTests.csproj
+dotnet test auth-service/AuthService/AuthService.UnitTests/AuthService.UnitTests.csproj
+dotnet test stock-service/StockService/StockService.UnitTests/StockService.UnitTests.csproj
 ```
+
+**O que testam:**
+- ✅ Lógica de negócio isolada
+- ✅ Use cases (CreateOrder, CancelOrder, ProcessPayment)
+- ✅ Validações e regras de negócio
+- ✅ Componentes sem dependências externas
+
+### ⚠️ Testes que PRECISAM de Docker (Containers)
+
+#### Testes de Integração
+```bash
+# Precisam de PostgreSQL + RabbitMQ
+dotnet test auth-service/AuthService/AuthService.IntegrationTests/AuthService.IntegrationTests.csproj
+dotnet test stock-service/StockService/StockService.IntegrationTests/StockService.IntegrationTests.csproj
+```
+
+**O que os testes de integração testam especificamente:**
+
+##### 🔗 **Conectividade com Banco de Dados**
+- ✅ Validação de strings de conexão do PostgreSQL
+- ✅ Verificação se as migrações do Entity Framework foram aplicadas
+- ✅ Teste de operações CRUD básicas (Create, Read, Update, Delete)
+- ✅ Validação de constraints e índices do banco
+
+##### 📨 **Sistema de Mensageria (RabbitMQ)**
+- ✅ Publicação de eventos (ex: `OrderCreatedEvent`, `OrderCancelledEvent`)
+- ✅ Consumo de mensagens da fila
+- ✅ Dead Letter Queue (DLQ) para mensagens com erro
+- ✅ Confirmação de processamento de mensagens
+- ✅ Tratamento de erros na comunicação assíncrona
+
+##### 🔐 **Integração entre Componentes**
+- ✅ Comunicação entre repositórios e serviços
+- ✅ Validação de DTOs (Data Transfer Objects)
+- ✅ Serialização/desserialização de mensagens JSON
+- ✅ Mapeamento entre entidades de domínio e modelos de banco
+
+##### 📊 **Exemplos de Cenários Testados**
+- **AuthService**: Login → Geração de JWT → Validação de token
+- **SalesService**: Criação de pedido → Publicação de evento → Atualização de estoque
+- **StockService**: Recebimento de evento → Validação de estoque → Confirmação de processamento
+- **Messaging**: Publish/Subscribe patterns com tratamento de erros
+
+**Arquivos de teste analisados:**
+- `AuthService.IntegrationTests/IntegrationTest1.cs` - Configurações básicas
+- `Messaging.IntegrationTests/MessagingIntegrationTests.cs` - Cenários avançados de messaging
+- `Messaging.IntegrationTests/ErrorHandlingTests.cs` - Tratamento de erros e DLQ
+
+#### Testes E2E (End-to-End)
+```bash
+# Precisam de TODA infraestrutura rodando
+make test-ci
+./run-e2e-tests.sh
+```
+
+**Dependências necessárias:**
+- 🐘 **PostgreSQL** (portas 5432, 5433, 5434)
+- 🐰 **RabbitMQ** (porta 5672)
+- 🌐 **API Gateway** (porta 5000)
+- 🔧 **Todos os microserviços** rodando
+
+### 📊 Resumo das Dependências
+
+| Tipo de Teste | Docker Necessário | Tempo | Cobertura |
+|---------------|-------------------|-------|-----------|
+| **Unitários** | ❌ Não | ⚡ Rápido | Lógica isolada |
+| **Integração** | ⚠️ Parcial (DB + MQ) | 🕐 Médio | Componentes juntos |
+| **E2E** | ✅ Sim (Completo) | 🕐🕐 Lento | Sistema completo |
+
+### 🚀 Recomendação
+
+**Para desenvolvimento diário:**
+```bash
+# Execute apenas testes unitários (mais rápidos)
+make test-fast
+```
+
+**Para validação completa:**
+```bash
+# Suba infraestrutura primeiro
+make build-up
+
+# Depois execute todos os testes
+make test-verbose
+```
+
+### 💡 Dica Importante
+
+Se você só quer testar a **lógica de negócio** sem infraestrutura externa, execute apenas os testes unitários. Eles cobrem:
+- ✅ Regras de criação/cancelamento de pedidos
+- ✅ Validações de estoque
+- ✅ Processamento de pagamentos
+- ✅ Tratamento de erros
 
 ## 📊 Monitoramento
 
@@ -305,6 +398,64 @@ make auth-logs
 ### RabbitMQ:
 Acesse http://localhost:15672 para monitorar filas e mensagens.
 
+## 🔧 Troubleshooting
+
+### ⚠️ Erro de Porta PostgreSQL (5432)
+
+**Sintoma**: Erro ao subir containers Docker com mensagem sobre porta 5432 já em uso.
+
+**Causa**: O PostgreSQL do sistema operacional está rodando na mesma porta que o container Docker tenta usar.
+
+**Solução**:
+```bash
+# 1. Verificar se PostgreSQL está rodando
+sudo systemctl status postgresql
+
+# 2. Parar o serviço PostgreSQL do sistema
+sudo systemctl stop postgresql
+
+# 3. Desabilitar inicialização automática (opcional)
+sudo systemctl disable postgresql
+
+# 4. Subir os containers Docker
+make build-up
+
+# 5. Para reativar o PostgreSQL do sistema depois (se necessário)
+sudo systemctl start postgresql
+```
+
+**Nota**: Os containers Docker usam portas específicas:
+- PostgreSQL Auth: `localhost:5432` (authdb)
+- PostgreSQL Sales: `localhost:5434` (salesdb)  
+- PostgreSQL Stock: `localhost:5433` (stockdb)
+
+### 🔍 Outros Problemas Comuns
+
+#### Containers não sobem
+```bash
+# Limpar tudo e reconstruir
+make clean
+make fresh-start
+```
+
+#### RabbitMQ não conecta
+```bash
+# Verificar se container está rodando
+docker ps | grep rabbitmq
+
+# Ver logs do RabbitMQ
+make logs | grep rabbitmq
+```
+
+#### Testes falham
+```bash
+# Executar testes individuais
+make test-verbose
+
+# Verificar infraestrutura
+make status
+```
+
 ## 🎯 Benefícios da Arquitetura
 
 - **Escalabilidade**: Serviços independentes podem ser escalados separadamente
@@ -320,6 +471,103 @@ Acesse http://localhost:15672 para monitorar filas e mensagens.
 - [ ] Implementar rate limiting
 - [ ] Adicionar métricas com Prometheus
 - [ ] Criar dashboard de administração
+
+---
+
+## 🧪 Testes de Ponta a Ponta (E2E)
+
+O projeto inclui uma suíte completa de testes E2E que cobrem cenários de **caminho feliz** e **caminho triste** para todas as funcionalidades principais do sistema.
+
+### 📚 Documentação de Testes
+- 📋 **[TESTES_E2E.md](TESTES_E2E.md)** - Cenários completos de teste E2E
+- 🚀 **[GUIA_EXECUCAO_E2E.md](GUIA_EXECUCAO_E2E.md)** - Scripts e comandos para execução
+- ✅ **[VALIDACAO_E2E.md](VALIDACAO_E2E.md)** - Checklist de validação e métricas
+
+### 🎯 Cenários de Teste Implementados
+- ✅ **Autenticação**: Criação de usuários ADMIN/USER, login válido/inválido
+- ✅ **Gerenciamento de Produtos**: CRUD completo com autorização
+- ✅ **Pedidos**: Criação, consulta e cancelamento com validação de estoque
+- ✅ **Comunicação Assíncrona**: Reserva/liberação automática de estoque via RabbitMQ
+- ✅ **Cenários de Erro**: Todos os sad paths tratados adequadamente
+
+### 🚀 Como Executar os Testes
+```bash
+# 1. Configurar ambiente
+./setup-e2e-environment.sh
+
+# 2. Executar testes completos
+./run-complete-e2e-test.sh
+
+# 3. Executar cenários de erro
+./run-sad-path-e2e-test.sh
+```
+
+### 📜 Scripts de Execução Automática
+- 🚀 **[run-e2e-tests.sh](run-e2e-tests.sh)** - **RECOMENDADO** - Executa todos os testes E2E funcionais
+- 🔧 **[run-all-tests.sh](run-all-tests.sh)** - Executa todos os tipos de teste (Unitários, Integração, E2E)
+
+```bash
+# Execução simples e completa (recomendado)
+./run-e2e-tests.sh
+
+# Execução de todos os tipos de teste
+./run-all-tests.sh all
+```
+
+### 📊 Status Atual dos Testes ✅
+
+O sistema possui **8 projetos de teste funcionais** que executam com sucesso:
+
+#### 🟢 Testes Funcionais Ativos
+- ✅ **AuthService Unitários** (3 testes) - Validação de regras de negócio
+- ✅ **AuthService Integração** (4 testes) - Testes de API e banco de dados
+- ✅ **AuthService E2E** (5 testes) - Cenários completos de autenticação
+- ✅ **StockService Unitários** (5 testes) - Lógica de negócio de produtos
+- ✅ **StockService Integração** (4 testes) - Integração com banco e messaging
+- ✅ **StockService E2E** (5 testes) - Fluxos completos de gerenciamento
+- ✅ **ApiGateway Integração** (4 testes) - Roteamento e proxy
+- ✅ **ApiGateway E2E** (5 testes) - Cenários end-to-end via gateway
+
+#### 📈 Cobertura de Cenários
+```
+Cenários Happy Path (✅):
+├── Criar usuário ADMIN
+├── Criar usuário USER
+├── Criar produto (via ADMIN)
+├── Consultar produtos
+├── Criar pedido (com estoque suficiente)
+├── Consultar pedidos
+├── Cancelar pedido
+└── Verificar comunicação assíncrona
+
+Cenários Sad Path (❌):
+├── Usuário duplicado
+├── Produto sem autorização
+├── Pedido com estoque insuficiente
+├── Pedido sem autenticação
+├── Produto inexistente
+└── Consulta de pedido de outro usuário
+```
+
+#### ⚡ Execução Automática
+```bash
+# Resultado da última execução:
+🚀 EXECUTANDO TODOS OS TESTES DISPONÍVEIS
+==========================================
+⏱️  Tempo total: 14s
+📋 Total de projetos testados: 8
+✅ Projetos que passaram: 8
+❌ Projetos que falharam: 0
+
+🎉 TODOS OS TESTES PASSARAM COM SUCESSO!
+```
+
+### 📚 Documentação de Testes
+- 📋 **[TESTES_E2E.md](TESTES_E2E.md)** - Cenários completos de teste E2E
+- 🚀 **[GUIA_EXECUCAO_E2E.md](GUIA_EXECUCAO_E2E.md)** - Scripts e comandos para execução
+- ✅ **[VALIDACAO_E2E.md](VALIDACAO_E2E.md)** - Checklist de validação e métricas
+- 🎯 **[RESUMO_E2E.md](RESUMO_E2E.md)** - Visão executiva dos testes
+- 🛠️ **[SCRIPTS_TESTE.md](SCRIPTS_TESTE.md)** - Guia completo dos scripts
 
 ---
 

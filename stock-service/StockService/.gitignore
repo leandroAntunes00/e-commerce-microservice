@@ -15,6 +15,15 @@ obj/
 .idea/
 *.sln.iml
 
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Legacy NuGet packages folder (só se aplicável)
+packages/
+.idea/
+*.sln.iml
+
 # ReSharper
 _ReSharper*/
 *.DotSettings.user
