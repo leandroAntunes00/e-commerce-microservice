@@ -25,8 +25,8 @@ namespace Messaging.IntegrationTests
                 {
                     {"RabbitMQ:HostName", "localhost"},
                     {"RabbitMQ:Port", "5672"},
-                        {"RabbitMQ:UserName", "guest"},
-                        {"RabbitMQ:Password", "guest"},
+                    {"RabbitMQ:UserName", "guest"},
+                    {"RabbitMQ:Password", "guest"},
                     {"RabbitMQ:VirtualHost", "/"},
                     {"RabbitMQ:ExchangeName", "test_exchange"},
                     {"RabbitMQ:QueuePrefix", "test."}

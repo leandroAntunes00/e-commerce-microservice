@@ -45,3 +45,9 @@ public interface IMessageConsumer : IDisposable
     Task StartConsumingAsync(string queueName, Func<string, Task> messageHandler);
     Task StopConsumingAsync();
 }
+
+// Interface para gerenciar conexões RabbitMQ de forma assíncrona
+public interface IRabbitMqConnectionManager : IAsyncDisposable
+{
+    Task<RabbitMQ.Client.IConnection> GetConnectionAsync();
+}

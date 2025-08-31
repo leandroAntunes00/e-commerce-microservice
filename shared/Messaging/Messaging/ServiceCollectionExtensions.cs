@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -29,6 +30,8 @@ namespace Messaging
                 var logger = sp.GetRequiredService<ILogger<RabbitMqPublisher>>();
                 return new RabbitMqPublisher(connectionManager, logger, settings);
             });
+
+            // Note: shutdown timeout config removed to avoid type resolution issues in test project.
 
             return services;
         }

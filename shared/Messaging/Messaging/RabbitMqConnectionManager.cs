@@ -8,11 +8,6 @@ using System.Threading;
 
 namespace Messaging
 {
-    public interface IRabbitMqConnectionManager : IDisposable
-    {
-        IConnection GetConnection();
-    }
-
     public class RabbitMqConnectionManager : IRabbitMqConnectionManager
     {
         private readonly ConnectionFactory _connectionFactory;
@@ -37,7 +32,7 @@ namespace Messaging
             };
         }
 
-        public IConnection GetConnection()
+        public async Task<IConnection> GetConnectionAsync()
         {
             if (_disposed)
             {
@@ -49,7 +44,7 @@ namespace Messaging
                 return _connection;
             }
 
-            _connectionLock.Wait();
+            await _connectionLock.WaitAsync();
             try
             {
                 // Double-check locking
@@ -59,13 +54,33 @@ namespace Messaging
                 }
 
                 _logger.LogInformation("Creating new RabbitMQ connection...");
-                _connection = _connectionFactory.CreateConnection();
-                _connection.ConnectionShutdown += OnConnectionShutdown;
-                _connection.CallbackException += OnCallbackException;
-                _connection.ConnectionBlocked += OnConnectionBlocked;
-                _logger.LogInformation("RabbitMQ connection created successfully.");
+                // Enable automatic recovery and set network recovery interval
+                _connectionFactory.AutomaticRecoveryEnabled = true;
+                _connectionFactory.NetworkRecoveryInterval = TimeSpan.FromSeconds(10);
 
-                return _connection;
+                // Retry loop for transient failures
+                var attempts = 0;
+                while (true)
+                {
+                    try
+                    {
+                        _connection = _connectionFactory.CreateConnection();
+                        _connection.ConnectionShutdown += OnConnectionShutdown;
+                        _connection.CallbackException += OnCallbackException;
+                        _connection.ConnectionBlocked += OnConnectionBlocked;
+                        _logger.LogInformation("RabbitMQ connection created successfully.");
+                        break;
+                    }
+                    catch (Exception ex) when (attempts < 5)
+                    {
+                        attempts++;
+                        _logger.LogWarning(ex, "Failed to create RabbitMQ connection. Retrying in {Seconds}s... (attempt {Attempt})", 2 * attempts, attempts);
+                        await Task.Delay(TimeSpan.FromSeconds(2 * attempts));
+                        continue;
+                    }
+                }
+
+                return _connection!;
             }
             finally
             {
@@ -73,34 +88,58 @@ namespace Messaging
             }
         }
 
-    private void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e)
+        private void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e)
         {
             _logger.LogWarning("RabbitMQ connection is blocked. Reason: {Reason}", e.Reason);
         }
 
-    private void OnCallbackException(object? sender, CallbackExceptionEventArgs e)
+        private void OnCallbackException(object? sender, CallbackExceptionEventArgs e)
         {
             _logger.LogWarning(e.Exception, "A callback exception occurred in RabbitMQ connection.");
         }
 
-    private void OnConnectionShutdown(object? sender, ShutdownEventArgs reason)
+        private void OnConnectionShutdown(object? sender, ShutdownEventArgs reason)
         {
             _logger.LogWarning("RabbitMQ connection was shut down. Reason: {Reason}", reason.ReplyText);
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             if (_disposed) return;
             _disposed = true;
             try
             {
-                _connection?.Dispose();
+                if (_connection != null)
+                {
+                    try
+                    {
+                        // Try an orderly close first
+                        try { _connection.Close(); } catch { }
+
+                        // Ensure any background I/O threads are stopped promptly
+                        try { _connection.Abort(); } catch { }
+
+                        // Unsubscribe handlers
+                        try
+                        {
+                            _connection.ConnectionShutdown -= OnConnectionShutdown;
+                            _connection.CallbackException -= OnCallbackException;
+                            _connection.ConnectionBlocked -= OnConnectionBlocked;
+                        }
+                        catch { }
+
+                        _connection.Dispose();
+                        _connection = null;
+                    }
+                    catch { }
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while disposing RabbitMQ connection.");
             }
             _connectionLock?.Dispose();
+            await Task.CompletedTask;
         }
     }
 }

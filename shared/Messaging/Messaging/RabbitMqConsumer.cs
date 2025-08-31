@@ -8,7 +8,7 @@ using RabbitMQ.Client.Events;
 
 namespace Messaging
 {
-    public class RabbitMqConsumer : IMessageConsumer
+    public class RabbitMqConsumer : IMessageConsumer, IAsyncDisposable
     {
         private readonly IRabbitMqConnectionManager _connectionManager;
         private readonly ILogger<RabbitMqConsumer> _logger;
@@ -28,7 +28,7 @@ namespace Messaging
             _settings = settings.Value;
         }
 
-        public async Task StartConsumingAsync(string queueName, Func<string, Task> messageHandler)
+    public async Task StartConsumingAsync(string queueName, Func<string, Task> messageHandler)
         {
             if (_channel != null)
             {
@@ -40,7 +40,7 @@ namespace Messaging
 
             try
             {
-                var connection = _connectionManager.GetConnection();
+                var connection = await _connectionManager.GetConnectionAsync();
                 _channel = connection.CreateModel();
 
                 _channel.ExchangeDeclare(
@@ -76,7 +76,7 @@ namespace Messaging
             await Task.CompletedTask;
         }
 
-        public async Task StopConsumingAsync()
+    public async Task StopConsumingAsync()
         {
             if (_channel == null)
             {
@@ -136,9 +136,15 @@ namespace Messaging
             }
         }
 
+        public async ValueTask DisposeAsync()
+        {
+            await StopConsumingAsync();
+        }
+
         public void Dispose()
         {
-            StopConsumingAsync().Wait();
+            // Maintain IDisposable for compatibility; forward to async dispose
+            DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
     }
 }
