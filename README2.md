@@ -569,8 +569,4 @@ Cenários Sad Path (❌):
 - 🎯 **[RESUMO_E2E.md](RESUMO_E2E.md)** - Visão executiva dos testes
 - 🛠️ **[SCRIPTS_TESTE.md](SCRIPTS_TESTE.md)** - Guia completo dos scripts
 
----
 
-**Feito com ❤️ para demonstrar microserviços modernos!**
-
-Para dúvidas ou contribuições, abra uma issue no repositório.

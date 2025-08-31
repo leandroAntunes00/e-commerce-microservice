@@ -8,7 +8,7 @@ Desenvolver uma aplicação com arquitetura de microserviços para gerenciamento
 
 ## 🖼️ Arquitetura Visual
 
-![Microserviços Architecture](microservicos.jpg)
+![Microserviços Architecture](https://blobsreceitasverdes.blob.core.windows.net/simulado-dev/microservico.jpg)
 
 ---
 
@@ -118,12 +118,6 @@ O sistema deve ser capaz de escalar facilmente, caso seja necessário adicionar 
 
 ## 🧪 Testes de Ponta a Ponta (E2E)
 
-O projeto inclui uma suíte completa de testes E2E que cobrem cenários de **caminho feliz** e **caminho triste** para todas as funcionalidades principais do sistema.
-
-### 📚 Documentação de Testes
-- 📋 **[TESTES_E2E.md](TESTES_E2E.md)** - Cenários completos de teste E2E
-- 🚀 **[GUIA_EXECUCAO_E2E.md](GUIA_EXECUCAO_E2E.md)** - Scripts e comandos para execução
-- ✅ **[VALIDACAO_E2E.md](VALIDACAO_E2E.md)** - Checklist de validação e métricas
 
 ### 🎯 Cenários de Teste Implementados
 - ✅ **Autenticação**: Criação de usuários ADMIN/USER, login válido/inválido
@@ -132,29 +126,8 @@ O projeto inclui uma suíte completa de testes E2E que cobrem cenários de **cam
 - ✅ **Comunicação Assíncrona**: Reserva/liberação automática de estoque via RabbitMQ
 - ✅ **Cenários de Erro**: Todos os sad paths tratados adequadamente
 
-### 🚀 Como Executar os Testes
-```bash
-# 1. Configurar ambiente
-./setup-e2e-environment.sh
 
-# 2. Executar testes completos
-./run-complete-e2e-test.sh
 
-# 3. Executar cenários de erro
-./run-sad-path-e2e-test.sh
-```
-
-### 📜 Scripts de Execução Automática
-- 🚀 **[run-e2e-tests.sh](run-e2e-tests.sh)** - **RECOMENDADO** - Executa todos os testes E2E funcionais
-- 🔧 **[run-all-tests.sh](run-all-tests.sh)** - Executa todos os tipos de teste (Unitários, Integração, E2E)
-
-```bash
-# Execução simples e completa (recomendado)
-./run-e2e-tests.sh
-
-# Execução de todos os tipos de teste
-./run-all-tests.sh all
-```
 
 ### 📊 Status Atual dos Testes ✅
 
@@ -191,18 +164,6 @@ Cenários Sad Path (❌):
 └── Consulta de pedido de outro usuário
 ```
 
-#### ⚡ Execução Automática
-```bash
-# Resultado da última execução:
-🚀 EXECUTANDO TODOS OS TESTES DISPONÍVEIS
-==========================================
-⏱️  Tempo total: 14s
-📋 Total de projetos testados: 8
-✅ Projetos que passaram: 8
-❌ Projetos que falharam: 0
-
-🎉 TODOS OS TESTES PASSARAM COM SUCESSO!
-```
 
 ---
 
@@ -280,69 +241,3 @@ make api-logs     # API Gateway
 - Os logs são coloridos e fáceis de entender
 - Todos os comandos têm confirmações visuais
 
----
-
-## 🪟 Scripts para Windows
-
-Para usuários Windows, criamos scripts especializados que facilitam o gerenciamento dos containers:
-
-### 📋 Scripts Disponíveis
-
-| Plataforma | Script | Descrição |
-|------------|--------|-----------|
-| **Windows** | [`deploy.bat`](deploy.bat) | Script Batch simples e universal |
-| **Windows** | [`deploy.ps1`](deploy.ps1) | Script PowerShell avançado |
-| **Linux/Mac** | [`Makefile`](Makefile) | Make tradicional |
-
-### 🚀 Guia Rápido Windows
-
-#### **Opção 1: Batch Script (Recomendado)**
-```cmd
-REM Deploy completo
-deploy.bat fresh-start
-
-REM Ver status
-deploy.bat status
-
-REM Ambiente de desenvolvimento
-deploy.bat dev
-```
-
-#### **Opção 2: PowerShell Script (Avançado)**
-```powershell
-# Deploy completo
-.\deploy.ps1 -Command fresh-start
-
-# Ver status
-.\deploy.ps1 -Command status
-
-# Uso interativo
-. .\deploy.ps1
-Start-FreshDeployment
-```
-
-### 📚 Documentação Windows
-
-- 📖 **[README_Windows.md](README_Windows.md)** - Guia completo para Windows
-- 📋 **[README_Windows_Scripts.md](README_Windows_Scripts.md)** - Comparação Batch vs PowerShell
-- 🐳 **[GUIA_DEPLOY.md](GUIA_DEPLOY.md)** - Guia geral de deployment
-
-### 🎯 Quando Usar Cada Script
-
-| Situação | Recomendação |
-|----------|--------------|
-| **Iniciante no Windows** | Use `deploy.bat` |
-| **Usuário avançado** | Use `deploy.ps1` |
-| **Linux/Mac** | Use `make` |
-| **CI/CD** | Use scripts apropriados |
-
----
-
-## 🎉 Conclusão
-
-Este projeto demonstra uma implementação completa de arquitetura de microserviços com comunicação assíncrona, testes abrangentes e boas práticas de desenvolvimento.
-
-### 📚 Documentação Adicional
-- 📖 **[README2.md](README2.md)** - Documentação técnica completa com testes, exemplos de uso e detalhes de implementação
-- 🧪 **[TESTES_E2E.md](TESTES_E2E.md)** - Cenários completos de teste E2E
-- 🚀 **[GUIA_EXECUCAO_E2E.md](GUIA_EXECUCAO_E2E.md)** - Scripts e comandos para execução

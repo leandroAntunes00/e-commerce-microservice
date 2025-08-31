@@ -102,10 +102,16 @@ namespace Messaging
                 var confirmed = channel.WaitForConfirms(TimeSpan.FromSeconds(5));
                 channel.BasicReturn -= OnBasicReturn;
 
-                if (!confirmed || returnReceived)
+                if (!confirmed)
                 {
                     _logger.LogError("Falha ao confirmar publicação. EventType: {EventType}, RoutingKey: {RoutingKey}", message.EventType, routingKey);
-                    throw new Exception("Message not confirmed by broker or was returned");
+                    throw new Exception("Message not confirmed by broker");
+                }
+
+                if (returnReceived)
+                {
+                    // Mensagem retornada pelo broker (ex.: NO_ROUTE). Logar como warning mas não interromper o fluxo
+                    _logger.LogWarning("Mensagem retornada pelo broker (provavelmente sem rota). EventType: {EventType}, RoutingKey: {RoutingKey}", message.EventType, routingKey);
                 }
 
                 _logger.LogInformation(
