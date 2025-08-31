@@ -11,10 +11,12 @@ public interface IGetProductsUseCase
 public class GetProductsUseCase : IGetProductsUseCase
 {
     private readonly IProductRepository _productRepository;
+    private readonly AutoMapper.IMapper _mapper;
 
-    public GetProductsUseCase(IProductRepository productRepository)
+    public GetProductsUseCase(IProductRepository productRepository, AutoMapper.IMapper mapper)
     {
         _productRepository = productRepository;
+        _mapper = mapper;
     }
 
     public async Task<GetProductsResult> ExecuteAsync(GetProductsQuery query)
@@ -34,7 +36,7 @@ public class GetProductsUseCase : IGetProductsUseCase
             products = await _productRepository.GetAllActiveAsync();
         }
 
-        var productDtos = products.Select(ProductDto.FromEntity).ToList();
+        var productDtos = _mapper.Map<List<ProductDto>>(products);
 
         return new GetProductsResult
         {

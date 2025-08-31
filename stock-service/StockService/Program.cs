@@ -10,6 +10,9 @@ using StockService.Application.UseCases;
 using StockService.Application.DTOs;
 using StockService.Infrastructure.Repositories;
 using StockService.Services;
+using AutoMapper;
+using StockService.Application.Mapping;
+using StockService.Api.Mapping;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,6 +66,9 @@ builder.Services.AddScoped<StockService.Application.UseCases.IGetProductsUseCase
 builder.Services.AddScoped<StockService.Application.UseCases.IGetProductUseCase, StockService.Application.UseCases.GetProductUseCase>();
 builder.Services.AddScoped<StockService.Application.UseCases.ICreateProductUseCase, StockService.Application.UseCases.CreateProductUseCase>();
 builder.Services.AddScoped<StockService.Application.UseCases.IUpdateStockUseCase, StockService.Application.UseCases.UpdateStockUseCase>();
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(ProductProfile), typeof(ApiProfile));
 
 var app = builder.Build();
 
