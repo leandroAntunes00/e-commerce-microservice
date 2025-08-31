@@ -172,7 +172,7 @@ info: ## Mostrar informações sobre portas e endpoints
 # Test targets
 .PHONY: test test-fast test-ci
 
-test: ## Rodar toda a suíte de testes disponível na solução (usa microservices.sln)
+test-sln: ## Rodar toda a suíte de testes disponível na solução (usa microservices.sln)
 	@echo "$(BLUE)🔬 Executando testes (solução)...$(NC)"
 	@dotnet test $(CURDIR)/microservices.sln --logger "console;verbosity=minimal"
 	@echo "$(GREEN)✅ Testes concluídos$(NC)"
