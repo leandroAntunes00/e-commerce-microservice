@@ -5,6 +5,7 @@ using SalesService.Application.Dtos;
 using SalesService.Application.Services;
 using SalesService.Application.UseCases;
 using System.Security.Claims;
+using AutoMapper;
 
 namespace SalesService.Api.Controllers;
 
@@ -17,17 +18,20 @@ public class SalesController : ControllerBase
     private readonly ICreateOrderUseCase _createOrderUseCase;
     private readonly IProcessPaymentUseCase _processPaymentUseCase;
     private readonly ICancelOrderUseCase _cancelOrderUseCase;
+    private readonly IMapper _mapper;
 
     public SalesController(
-        IOrderQueryService orderQueryService,
-        ICreateOrderUseCase createOrderUseCase,
-        IProcessPaymentUseCase processPaymentUseCase,
-        ICancelOrderUseCase cancelOrderUseCase)
+    IOrderQueryService orderQueryService,
+    ICreateOrderUseCase createOrderUseCase,
+    IProcessPaymentUseCase processPaymentUseCase,
+    ICancelOrderUseCase cancelOrderUseCase,
+    IMapper mapper)
     {
         _orderQueryService = orderQueryService;
         _createOrderUseCase = createOrderUseCase;
         _processPaymentUseCase = processPaymentUseCase;
         _cancelOrderUseCase = cancelOrderUseCase;
+        _mapper = mapper;
     }
 
     // GET: api/sales/orders - Lista pedidos do usuário logado
@@ -99,16 +103,8 @@ public class SalesController : ControllerBase
         {
             var userId = GetCurrentUserId();
 
-            var command = new CreateOrderCommand
-            {
-                UserId = userId,
-                Items = request.Items.Select(i => new OrderItemCommand
-                {
-                    ProductId = i.ProductId,
-                    Quantity = i.Quantity
-                }).ToList(),
-                Notes = request.Notes
-            };
+            var command = _mapper.Map<CreateOrderCommand>(request);
+            command.UserId = userId;
 
             var orderId = await _createOrderUseCase.ExecuteAsync(command);
 
@@ -202,13 +198,9 @@ public class SalesController : ControllerBase
         {
             var userId = GetCurrentUserId();
 
-            var command = new ProcessPaymentCommand
-            {
-                UserId = userId,
-                OrderId = request.OrderId,
-                PaymentMethod = "Card",
-                Amount = request.Amount
-            };
+            var command = _mapper.Map<ProcessPaymentCommand>(request);
+            command.UserId = userId;
+            command.PaymentMethod = "Card";
 
             await _processPaymentUseCase.ExecuteAsync(command);
 
@@ -253,13 +245,9 @@ public class SalesController : ControllerBase
         {
             var userId = GetCurrentUserId();
 
-            var command = new ProcessPaymentCommand
-            {
-                UserId = userId,
-                OrderId = request.OrderId,
-                PaymentMethod = "Pix",
-                Amount = request.Amount
-            };
+            var command = _mapper.Map<ProcessPaymentCommand>(request);
+            command.UserId = userId;
+            command.PaymentMethod = "Pix";
 
             await _processPaymentUseCase.ExecuteAsync(command);
 

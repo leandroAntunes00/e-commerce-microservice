@@ -59,6 +59,7 @@ builder.Services.AddScoped<AuthService.Domain.Interfaces.IPasswordService, AuthS
 builder.Services.AddScoped<AuthService.Application.UseCases.IRegisterUserUseCase, AuthService.Application.UseCases.RegisterUserUseCase>();
 builder.Services.AddScoped<AuthService.Application.UseCases.ILoginUserUseCase, AuthService.Application.UseCases.LoginUserUseCase>();
 builder.Services.AddScoped<AuthService.Application.UseCases.IValidateTokenUseCase, AuthService.Application.UseCases.ValidateTokenUseCase>();
+builder.Services.AddScoped<AuthService.Application.UseCases.IGetProfileUseCase, AuthService.Application.UseCases.GetProfileUseCase>();
 
 // HttpContext accessor for token validation
 builder.Services.AddHttpContextAccessor();

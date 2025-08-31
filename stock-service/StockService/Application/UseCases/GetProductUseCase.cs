@@ -11,10 +11,12 @@ public interface IGetProductUseCase
 public class GetProductUseCase : IGetProductUseCase
 {
     private readonly IProductRepository _productRepository;
+    private readonly AutoMapper.IMapper _mapper;
 
-    public GetProductUseCase(IProductRepository productRepository)
+    public GetProductUseCase(IProductRepository productRepository, AutoMapper.IMapper mapper)
     {
         _productRepository = productRepository;
+        _mapper = mapper;
     }
 
     public async Task<GetProductResult> ExecuteAsync(GetProductQuery query)
@@ -34,7 +36,7 @@ public class GetProductUseCase : IGetProductUseCase
         {
             Success = true,
             Message = "Product retrieved successfully",
-            Product = ProductDto.FromEntity(product)
+            Product = _mapper.Map<ProductDto>(product)
         };
     }
 }

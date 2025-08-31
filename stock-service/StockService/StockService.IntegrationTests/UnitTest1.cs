@@ -61,11 +61,17 @@ public class ProductModelIntegrationTests
     public void ProductResponse_ShouldHandleSuccessAndFailure()
     {
         // Arrange & Act
+        var productEntity = new Product { Id = 1, Name = "Test" };
+
+        // Map entity to DTO using AutoMapper to keep mapping consistent with application profiles
+        var config = new AutoMapper.MapperConfiguration(cfg => cfg.AddProfile(new StockService.Application.Mapping.ProductProfile()));
+        var mapper = config.CreateMapper();
+
         var successResponse = new ProductResponse
         {
             Success = true,
             Message = "Operation successful",
-            Product = ProductDto.FromEntity(new Product { Id = 1, Name = "Test" })
+            Product = mapper.Map<StockService.Application.DTOs.ProductDto>(productEntity)
         };
 
         var failureResponse = new ProductResponse

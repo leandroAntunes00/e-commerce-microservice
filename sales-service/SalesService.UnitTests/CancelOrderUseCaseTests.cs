@@ -20,15 +20,23 @@ public class CancelOrderUseCaseTests
         var orderRepoMock = new Mock<IOrderRepository>();
         var msgPublisherMock = new Mock<Messaging.IMessagePublisher>();
 
-        var order = new Order { Id = 10, UserId = 2, Status = SalesService.Domain.Enums.OrderStatus.Pending.ToString(), Items = new List<OrderItem>
+        var order = new Order
+        {
+            Id = 10,
+            UserId = 2,
+            Status = SalesService.Domain.Enums.OrderStatus.Pending.ToString(),
+            Items = new List<OrderItem>
         {
             new OrderItem { ProductId = 1, ProductName = "P", Quantity = 1, UnitPrice = 5m, TotalPrice = 5m }
-        }};
+        }
+        };
 
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(10, 2)).ReturnsAsync(order);
         orderRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Order>())).Returns(Task.CompletedTask);
 
-        var useCase = new CancelOrderUseCase(orderRepoMock.Object, msgPublisherMock.Object);
+        var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+
+        var useCase = new CancelOrderUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper);
 
         var command = new CancelOrderCommand { OrderId = 10, UserId = 2 };
 

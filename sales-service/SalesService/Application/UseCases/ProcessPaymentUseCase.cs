@@ -2,6 +2,7 @@ using SalesService.Application.Dtos;
 using SalesService.Domain.Interfaces;
 using Messaging;
 using Messaging.Events;
+using AutoMapper;
 
 namespace SalesService.Application.UseCases;
 
@@ -14,13 +15,16 @@ public class ProcessPaymentUseCase : IProcessPaymentUseCase
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IMessagePublisher _messagePublisher;
+    private readonly IMapper _mapper;
 
     public ProcessPaymentUseCase(
         IOrderRepository orderRepository,
-        IMessagePublisher messagePublisher)
+        IMessagePublisher messagePublisher,
+        IMapper mapper)
     {
         _orderRepository = orderRepository;
         _messagePublisher = messagePublisher;
+        _mapper = mapper;
     }
 
     public async Task ExecuteAsync(ProcessPaymentCommand command)
@@ -48,13 +52,8 @@ public class ProcessPaymentUseCase : IProcessPaymentUseCase
         await _orderRepository.UpdateAsync(order);
 
         // Publish confirmation event
-        var evt = new OrderConfirmedEvent
-        {
-            OrderId = order.Id,
-            UserId = order.UserId,
-            ConfirmedAt = order.UpdatedAt ?? DateTime.UtcNow,
-            Method = command.PaymentMethod
-        };
+        var evt = _mapper.Map<OrderConfirmedEvent>(order);
+        evt.Method = command.PaymentMethod;
 
         await _messagePublisher.PublishAsync(evt);
     }

@@ -17,6 +17,7 @@ namespace Messaging
         private readonly IRabbitMqConnectionManager _connectionManager;
         private readonly RabbitMqSettings _settings;
         private IModel? _channel;
+    private string? _consumerTag;
 
         protected abstract string QueueName { get; }
         protected abstract Task<bool> HandleMessageAsync(string message, IBasicProperties properties);
@@ -31,15 +32,15 @@ namespace Messaging
             _settings = settings.Value;
         }
 
-        public override Task StartAsync(CancellationToken cancellationToken)
-        { 
+        public override async Task StartAsync(CancellationToken cancellationToken)
+        {
             _logger.LogInformation("Starting consumer for queue '{QueueName}'.", QueueName);
-            
-            var connection = _connectionManager.GetConnection();
+
+            var connection = await _connectionManager.GetConnectionAsync();
             _channel = connection.CreateModel();
 
             _channel.ExchangeDeclare(_settings.ExchangeName, "direct", durable: true, autoDelete: false);
-            
+
             // Configurar DLQ apenas se não for uma DLQ
             var isDlq = QueueName.EndsWith(".dlq");
             if (!isDlq)
@@ -51,7 +52,7 @@ namespace Messaging
                 };
 
                 _channel.QueueDeclare(QueueName, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
-                
+
                 // Declarar a DLQ
                 _channel.QueueDeclare($"{QueueName}.dlq", durable: true, exclusive: false, autoDelete: false, arguments: null);
             }
@@ -59,26 +60,32 @@ namespace Messaging
             {
                 _channel.QueueDeclare(QueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
             }
-            
+
             var routingKey = QueueName.Replace(_settings.QueuePrefix, "");
             _channel.QueueBind(QueueName, _settings.ExchangeName, routingKey);
 
-            return base.StartAsync(cancellationToken);
+            // Configure QoS and consumer now to capture consumerTag for graceful cancellation
+            _channel.BasicQos(0, 1, false);
+            var consumer = new AsyncEventingBasicConsumer(_channel);
+            consumer.Received += OnMessageReceived;
+            _consumerTag = _channel.BasicConsume(QueueName, autoAck: false, consumer: consumer);
+
+            _logger.LogInformation("Consumer started for queue '{QueueName}'. Waiting for messages.", QueueName);
+
+            await base.StartAsync(cancellationToken);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            stoppingToken.ThrowIfCancellationRequested();
-
-            var consumer = new AsyncEventingBasicConsumer(_channel!);
-            consumer.Received += OnMessageReceived;
-
-            _channel!.BasicQos(0, 1, false);
-            _channel.BasicConsume(QueueName, autoAck: false, consumer);
-
-            _logger.LogInformation("Consumer started for queue '{QueueName}'. Waiting for messages.", QueueName);
-
-            await Task.Delay(Timeout.Infinite, stoppingToken);
+            // Just wait until cancellation. Consumer is already started in StartAsync.
+            try
+            {
+                await Task.Delay(Timeout.Infinite, stoppingToken);
+            }
+            catch (TaskCanceledException)
+            {
+                // Expected when stoppingToken is cancelled
+            }
         }
 
         private async Task OnMessageReceived(object sender, BasicDeliverEventArgs ea)
@@ -108,9 +115,32 @@ namespace Messaging
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)
-        { 
+        {
             _logger.LogInformation("Stopping consumer for queue '{QueueName}'.", QueueName);
+
+            try
+            {
+                if (_channel != null && !string.IsNullOrEmpty(_consumerTag))
+                {
+                    try
+                    {
+                        _channel.BasicCancel(_consumerTag);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error while canceling consumer '{QueueName}' with tag '{ConsumerTag}'", QueueName, _consumerTag);
+                    }
+                }
+            }
+            catch { }
+
             await base.StopAsync(cancellationToken);
+
+            try
+            {
+                _channel?.Close();
+            }
+            catch { }
             _channel?.Dispose();
         }
     }

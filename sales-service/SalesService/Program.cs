@@ -17,7 +17,16 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(options =>
+        {
+            options.Filters.Add(typeof(SalesService.Api.Filters.ValidationFilter));
+        });
+
+        // Configure API behavior to suppress default automatic model state responses
+        builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+        {
+            options.SuppressModelStateInvalidFilter = true;
+        });
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
@@ -57,22 +66,28 @@ public class Program
             });
         });
 
-    // Add RabbitMQ messaging using shared extension (registers connection manager and publisher)
-    builder.Services.AddRabbitMqMessaging(builder.Configuration);
+        // Add RabbitMQ messaging using shared extension (registers connection manager and publisher)
+        builder.Services.AddRabbitMqMessaging(builder.Configuration);
 
-    // Register RabbitMQ consumer implementation so hosted services can resolve it
-    builder.Services.AddTransient<IMessageConsumer, RabbitMqConsumer>();
+        // Register RabbitMQ consumer implementation so hosted services can resolve it
+        builder.Services.AddTransient<IMessageConsumer, RabbitMqConsumer>();
 
-    // Register Domain Services
-    builder.Services.AddScoped<Domain.Interfaces.IOrderRepository, Infrastructure.Repositories.OrderRepository>();
+        // Register Domain Services
+        builder.Services.AddScoped<Domain.Interfaces.IOrderRepository, Infrastructure.Repositories.OrderRepository>();
 
-    // Register Application Services
-    builder.Services.AddScoped<Application.Services.IOrderQueryService, Application.Services.OrderQueryService>();
+        // Register Application Services
+        builder.Services.AddScoped<Application.Services.IOrderQueryService, Application.Services.OrderQueryService>();
 
-    // Register Use Cases
-    builder.Services.AddScoped<Application.UseCases.ICreateOrderUseCase, Application.UseCases.CreateOrderUseCase>();
-    builder.Services.AddScoped<Application.UseCases.IProcessPaymentUseCase, Application.UseCases.ProcessPaymentUseCase>();
-    builder.Services.AddScoped<Application.UseCases.ICancelOrderUseCase, Application.UseCases.CancelOrderUseCase>();
+        // Register AutoMapper
+        builder.Services.AddAutoMapper(typeof(SalesService.Application.Mappings.OrderProfile));
+
+        // Register Use Cases
+        builder.Services.AddScoped<Application.UseCases.ICreateOrderUseCase, Application.UseCases.CreateOrderUseCase>();
+        builder.Services.AddScoped<Application.UseCases.IProcessPaymentUseCase, Application.UseCases.ProcessPaymentUseCase>();
+        builder.Services.AddScoped<Application.UseCases.ICancelOrderUseCase, Application.UseCases.CancelOrderUseCase>();
+
+        // Reservation result processor
+        builder.Services.AddScoped<IReservationResultProcessor, ReservationResultProcessor>();
 
         // Add HttpClient for service-to-service communication
         builder.Services.AddHttpClient("StockService", client =>
@@ -83,8 +98,8 @@ public class Program
 
         // Register StockServiceClient
         builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
-    // Register reservation result consumer
-    builder.Services.AddHostedService<ReservationResultConsumerService>();
+        // Register reservation result consumer
+        builder.Services.AddHostedService<ReservationResultConsumerService>();
 
         var app = builder.Build();
 

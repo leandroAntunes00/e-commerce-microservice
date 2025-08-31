@@ -1,5 +1,6 @@
 using AuthService.Application.Dtos;
 using AuthService.Domain.Interfaces;
+using AuthService.Application.Mappers;
 
 namespace AuthService.Application.UseCases;
 
@@ -59,18 +60,18 @@ public class LoginUserUseCase : ILoginUserUseCase
         }
 
         // Update last login
-        user.UpdateLastLogin();
-        await _userRepository.UpdateAsync(user);
+    user.UpdateLastLogin();
+    await _userRepository.UpdateAsync(user);
 
-        // Generate JWT token
-        var token = _jwtService.GenerateToken(user);
+    // Generate JWT token
+    var token = _jwtService.GenerateToken(user);
 
         return new AuthResult
         {
             Success = true,
             Message = "Login successful",
             Token = token,
-            User = user
+            User = DtoMapper.ToApplicationUserDto(user)
         };
     }
 }

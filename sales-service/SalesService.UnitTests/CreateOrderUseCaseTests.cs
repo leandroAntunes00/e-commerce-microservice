@@ -27,14 +27,23 @@ public class CreateOrderUseCaseTests
         var product = new StockProductResponse { Id = 1, Name = "Prod", Price = 10m, StockQuantity = 100 };
         stockClientMock.Setup(s => s.GetProductAsync(1)).ReturnsAsync(product);
 
-        var createdOrder = new Order { Id = 42, UserId = 5, TotalAmount = 20m, Items = new List<OrderItem>
+        var createdOrder = new Order
+        {
+            Id = 42,
+            UserId = 5,
+            TotalAmount = 20m,
+            Items = new List<OrderItem>
         {
             new OrderItem { ProductId = 1, ProductName = "Prod", UnitPrice = 10m, Quantity = 2, TotalPrice = 20m }
-        }};
+        }
+        };
 
         orderRepoMock.Setup(r => r.CreateAsync(It.IsAny<Order>())).ReturnsAsync(createdOrder);
 
-        var useCase = new CreateOrderUseCase(orderRepoMock.Object, stockClientMock.Object, msgPublisherMock.Object);
+        // Arrange mapper
+        var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+
+        var useCase = new CreateOrderUseCase(orderRepoMock.Object, stockClientMock.Object, msgPublisherMock.Object, mapper);
 
         var command = new CreateOrderCommand { UserId = 5, Items = new List<OrderItemCommand> { new OrderItemCommand { ProductId = 1, Quantity = 2 } } };
 

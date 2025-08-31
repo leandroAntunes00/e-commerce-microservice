@@ -155,19 +155,19 @@ public class OrderEventConsumerService : BackgroundService
 
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<StockDbContext>();
-    var messagePublisher = scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
+        var messagePublisher = scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
 
-    bool overallSuccess = true;
-    string? failureReason = null;
+        bool overallSuccess = true;
+        string? failureReason = null;
 
-    foreach (var item in orderEvent.Items)
+        foreach (var item in orderEvent.Items)
         {
             var product = await context.Products.FindAsync(item.ProductId);
             if (product == null)
             {
                 _logger.LogWarning($"Produto não encontrado: ProductId={item.ProductId}");
-        overallSuccess = false;
-        failureReason = $"Product not found: {item.ProductId}";
+                overallSuccess = false;
+                failureReason = $"Product not found: {item.ProductId}";
                 continue;
             }
 
@@ -175,10 +175,10 @@ public class OrderEventConsumerService : BackgroundService
             {
                 _logger.LogError($"Estoque insuficiente para produto {product.Name}: solicitado={item.Quantity}, disponível={product.StockQuantity}");
 
-        overallSuccess = false;
-        failureReason = $"Insufficient stock for product {product.Name}";
-        // Não reservar mais itens deste pedido
-        continue;
+                overallSuccess = false;
+                failureReason = $"Insufficient stock for product {product.Name}";
+                // Não reservar mais itens deste pedido
+                continue;
             }
 
             // Reservar estoque
@@ -206,7 +206,7 @@ public class OrderEventConsumerService : BackgroundService
         }
 
         // Publicar evento informando sucesso/fracasso da reserva para o pedido
-    var reservationResult = new OrderReservationCompletedEvent
+        var reservationResult = new OrderReservationCompletedEvent
         {
             OrderId = orderEvent.OrderId,
             Success = overallSuccess,
@@ -214,8 +214,8 @@ public class OrderEventConsumerService : BackgroundService
             OccurredAt = DateTime.UtcNow
         };
 
-    // Publish to a specific routing/queue name so SalesService consumer can receive it
-    await messagePublisher.PublishAsync(reservationResult);
+        // Publish to a specific routing/queue name so SalesService consumer can receive it
+        await messagePublisher.PublishAsync(reservationResult);
 
         _logger.LogInformation($"Pedido {orderEvent.OrderId} processado. Reservation success={overallSuccess}");
     }

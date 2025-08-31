@@ -13,17 +13,4 @@ public class ProductDto
     public string ImageUrl { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-
-    public static ProductDto FromEntity(Product p) => new()
-    {
-        Id = p.Id,
-        Name = p.Name,
-        Description = p.Description,
-        Price = p.Price,
-        Category = p.Category,
-        StockQuantity = p.StockQuantity,
-        ImageUrl = p.ImageUrl,
-        CreatedAt = p.CreatedAt,
-        UpdatedAt = p.UpdatedAt
-    };
 }

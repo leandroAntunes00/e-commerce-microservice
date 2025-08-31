@@ -4,7 +4,6 @@ using StockService.Api.Dtos;
 using StockService.Application.UseCases;
 using StockService.Application.DTOs;
 using Messaging;
-using Messaging.Events;
 
 namespace StockService.Api.Controllers;
 
@@ -17,19 +16,22 @@ public class StockController : ControllerBase
     private readonly ICreateProductUseCase _createProductUseCase;
     private readonly IUpdateStockUseCase _updateStockUseCase;
     private readonly IMessagePublisher _messagePublisher;
+    private readonly AutoMapper.IMapper _mapper;
 
     public StockController(
         IGetProductsUseCase getProductsUseCase,
         IGetProductUseCase getProductUseCase,
         ICreateProductUseCase createProductUseCase,
         IUpdateStockUseCase updateStockUseCase,
-        IMessagePublisher messagePublisher)
+    IMessagePublisher messagePublisher,
+    AutoMapper.IMapper mapper)
     {
         _getProductsUseCase = getProductsUseCase;
         _getProductUseCase = getProductUseCase;
         _createProductUseCase = createProductUseCase;
         _updateStockUseCase = updateStockUseCase;
         _messagePublisher = messagePublisher;
+        _mapper = mapper;
     }
 
     // GET: api/stock/products - Lista todos os produtos ativos (público)
@@ -38,12 +40,7 @@ public class StockController : ControllerBase
     {
         try
         {
-            var query = new GetProductsQuery
-            {
-                Category = category,
-                SearchTerm = search
-            };
-
+            var query = new GetProductsQuery { Category = category, SearchTerm = search };
             var result = await _getProductsUseCase.ExecuteAsync(query);
 
             return Ok(new ProductResponse
@@ -126,23 +123,14 @@ public class StockController : ControllerBase
         }
     }
 
-    // POST: api/stock/products - Cria novo produto (requer autenticação de Admin)
+    // POST: api/stock/products - Cria produto (requer autenticação de Admin)
     [HttpPost("products")]
     [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
     {
         try
         {
-            var command = new CreateProductCommand
-            {
-                Name = request.Name,
-                Description = request.Description,
-                Price = request.Price,
-                Category = request.Category,
-                StockQuantity = request.StockQuantity,
-                ImageUrl = request.ImageUrl
-            };
-
+            var command = _mapper.Map<CreateProductCommand>(request);
             var result = await _createProductUseCase.ExecuteAsync(command);
 
             if (!result.Success)
@@ -179,12 +167,8 @@ public class StockController : ControllerBase
     {
         try
         {
-            var command = new UpdateStockCommand
-            {
-                ProductId = id,
-                NewStockQuantity = request.StockQuantity
-            };
-
+            var command = _mapper.Map<UpdateStockCommand>(request);
+            command.ProductId = id;
             var result = await _updateStockUseCase.ExecuteAsync(command);
 
             if (!result.Success)

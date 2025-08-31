@@ -4,6 +4,7 @@ using SalesService.Domain.Interfaces;
 using SalesService.Services;
 using Messaging;
 using Messaging.Events;
+using AutoMapper;
 
 namespace SalesService.Application.UseCases;
 
@@ -17,15 +18,18 @@ public class CreateOrderUseCase : ICreateOrderUseCase
     private readonly IOrderRepository _orderRepository;
     private readonly IStockServiceClient _stockServiceClient;
     private readonly IMessagePublisher _messagePublisher;
+    private readonly IMapper _mapper;
 
     public CreateOrderUseCase(
         IOrderRepository orderRepository,
         IStockServiceClient stockServiceClient,
-        IMessagePublisher messagePublisher)
+        IMessagePublisher messagePublisher,
+        IMapper mapper)
     {
         _orderRepository = orderRepository;
         _stockServiceClient = stockServiceClient;
         _messagePublisher = messagePublisher;
+        _mapper = mapper;
     }
 
     public async Task<int> ExecuteAsync(CreateOrderCommand command)
@@ -68,21 +72,7 @@ public class CreateOrderUseCase : ICreateOrderUseCase
         var createdOrder = await _orderRepository.CreateAsync(order);
 
         // Publish event
-        var orderCreatedEvent = new OrderCreatedEvent
-        {
-            OrderId = createdOrder.Id,
-            UserId = command.UserId,
-            Items = createdOrder.Items.Select(i => new OrderItemEvent
-            {
-                ProductId = i.ProductId,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice
-            }).ToList(),
-            TotalAmount = createdOrder.TotalAmount,
-            CreatedAt = createdOrder.CreatedAt
-        };
-
+        var orderCreatedEvent = _mapper.Map<OrderCreatedEvent>(createdOrder);
         await _messagePublisher.PublishAsync(orderCreatedEvent);
 
         return createdOrder.Id;

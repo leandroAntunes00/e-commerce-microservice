@@ -2,6 +2,7 @@ using AuthService.Application.Dtos;
 using AuthService.Domain.Entities;
 using AuthService.Domain.Interfaces;
 using AuthService.Domain.ValueObjects;
+using AuthService.Application.Mappers;
 
 namespace AuthService.Application.UseCases;
 
@@ -59,15 +60,15 @@ public class RegisterUserUseCase : IRegisterUserUseCase
 
         var createdUser = await _userRepository.CreateAsync(user);
 
-        // Generate JWT token
-        var token = _jwtService.GenerateToken(createdUser);
+    // Generate JWT token
+    var token = _jwtService.GenerateToken(createdUser);
 
         return new AuthResult
         {
             Success = true,
             Message = "User registered successfully",
             Token = token,
-            User = createdUser
+            User = DtoMapper.ToApplicationUserDto(createdUser)
         };
     }
 }
