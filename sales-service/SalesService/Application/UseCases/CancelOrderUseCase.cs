@@ -2,6 +2,7 @@ using SalesService.Application.Dtos;
 using SalesService.Domain.Interfaces;
 using Messaging;
 using Messaging.Events;
+using AutoMapper;
 
 namespace SalesService.Application.UseCases;
 
@@ -14,11 +15,13 @@ public class CancelOrderUseCase : ICancelOrderUseCase
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IMessagePublisher _messagePublisher;
+    private readonly IMapper _mapper;
 
-    public CancelOrderUseCase(IOrderRepository orderRepository, IMessagePublisher messagePublisher)
+    public CancelOrderUseCase(IOrderRepository orderRepository, IMessagePublisher messagePublisher, IMapper mapper)
     {
         _orderRepository = orderRepository;
         _messagePublisher = messagePublisher;
+        _mapper = mapper;
     }
 
     public async Task ExecuteAsync(CancelOrderCommand command)
@@ -41,20 +44,8 @@ public class CancelOrderUseCase : ICancelOrderUseCase
         await _orderRepository.UpdateAsync(order);
 
         // Publish OrderCancelledEvent so other services (e.g., Stock) can react and release reserved stock
-        var evt = new OrderCancelledEvent
-        {
-            OrderId = order.Id,
-            UserId = order.UserId,
-            Items = order.Items.Select(i => new OrderItemEvent
-            {
-                ProductId = i.ProductId,
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice
-            }).ToList(),
-            CancelledAt = DateTime.UtcNow
-        };
-
-        await _messagePublisher.PublishAsync(evt);
+    var evt = _mapper.Map<OrderCancelledEvent>(order);
+    evt.CancelledAt = DateTime.UtcNow;
+    await _messagePublisher.PublishAsync(evt);
     }
 }

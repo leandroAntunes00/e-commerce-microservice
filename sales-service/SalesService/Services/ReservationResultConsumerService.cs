@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Messaging;
 using Messaging.Events;
+using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -54,7 +55,6 @@ public class ReservationResultConsumerService : BackgroundService
                 try { await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken); } catch (OperationCanceledException) { break; }
             }
         }
-
         if (consumer == null)
         {
             _logger.LogError("Não foi possível inicializar o consumidor de resultados de reserva; saindo.");
@@ -72,7 +72,9 @@ public class ReservationResultConsumerService : BackgroundService
                         var evt = System.Text.Json.JsonSerializer.Deserialize<OrderReservationCompletedEvent>(message);
                         if (evt != null)
                         {
-                            await ProcessReservationResult(evt);
+                            using var scope = _serviceProvider.CreateScope();
+                            var processor = scope.ServiceProvider.GetRequiredService<IReservationResultProcessor>();
+                            await processor.ProcessAsync(evt);
                         }
                     }
                     catch (Exception ex)
@@ -101,46 +103,5 @@ public class ReservationResultConsumerService : BackgroundService
         }
     }
 
-    private async Task ProcessReservationResult(OrderReservationCompletedEvent evt)
-    {
-        _logger.LogInformation($"Processando resultado de reserva: OrderId={evt.OrderId}, Success={evt.Success}");
-
-        using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<SalesDbContext>();
-
-        var order = await context.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == evt.OrderId);
-        if (order == null)
-        {
-            _logger.LogWarning($"Order not found: {evt.OrderId}");
-            return;
-        }
-
-        if (evt.Success)
-        {
-            order.Status = SalesService.Domain.Enums.OrderStatus.Reserved.ToString(); // indicates stock reserved
-            order.UpdatedAt = DateTime.UtcNow;
-            await context.SaveChangesAsync();
-            _logger.LogInformation($"Order {evt.OrderId} marked as Reserved");
-        }
-        else
-        {
-            order.Status = SalesService.Domain.Enums.OrderStatus.Cancelled.ToString();
-            order.Notes = evt.Reason;
-            order.UpdatedAt = DateTime.UtcNow;
-            await context.SaveChangesAsync();
-            _logger.LogInformation($"Order {evt.OrderId} Cancelled due reservation failure: {evt.Reason}");
-
-            // Optionally publish OrderCancelledEvent so StockService or others can react (existing flow)
-            var publisher = scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
-            var cancelEvt = new OrderCancelledEvent
-            {
-                OrderId = order.Id,
-                UserId = order.UserId,
-                CancelledAt = DateTime.UtcNow,
-                Items = order.Items.Select(i => new OrderItemEvent { ProductId = i.ProductId, ProductName = i.ProductName, Quantity = i.Quantity, UnitPrice = i.UnitPrice }).ToList()
-            };
-
-            await publisher.PublishAsync(cancelEvt);
-        }
-    }
+    // logic extracted to ReservationResultProcessor
 }

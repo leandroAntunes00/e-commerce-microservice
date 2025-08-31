@@ -24,7 +24,9 @@ public class ProcessPaymentUseCaseTests
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(11, 3)).ReturnsAsync(order);
         orderRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Order>())).Returns(Task.CompletedTask);
 
-        var useCase = new ProcessPaymentUseCase(orderRepoMock.Object, msgPublisherMock.Object);
+    var mapper = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+
+        var useCase = new ProcessPaymentUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper);
 
         var command = new ProcessPaymentCommand { OrderId = 11, UserId = 3, PaymentMethod = "PIX", Amount = 100m };
 
@@ -47,7 +49,9 @@ public class ProcessPaymentUseCaseTests
         var order = new Order { Id = 12, UserId = 3, Status = SalesService.Domain.Enums.OrderStatus.Reserved.ToString(), TotalAmount = 200m, UpdatedAt = null };
         orderRepoMock.Setup(r => r.GetByIdAndUserIdAsync(12, 3)).ReturnsAsync(order);
 
-        var useCase = new ProcessPaymentUseCase(orderRepoMock.Object, msgPublisherMock.Object);
+    var mapper2 = SalesService.UnitTests.TestHelpers.TestMapperFactory.CreateMapper();
+
+        var useCase = new ProcessPaymentUseCase(orderRepoMock.Object, msgPublisherMock.Object, mapper2);
 
         var command = new ProcessPaymentCommand { OrderId = 12, UserId = 3, PaymentMethod = "Card", Amount = 100m };
 

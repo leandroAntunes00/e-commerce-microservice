@@ -17,7 +17,16 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(options =>
+        {
+            options.Filters.Add(typeof(SalesService.Api.Filters.ValidationFilter));
+        });
+
+        // Configure API behavior to suppress default automatic model state responses
+        builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+        {
+            options.SuppressModelStateInvalidFilter = true;
+        });
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
@@ -69,10 +78,16 @@ public class Program
     // Register Application Services
     builder.Services.AddScoped<Application.Services.IOrderQueryService, Application.Services.OrderQueryService>();
 
+    // Register AutoMapper
+    builder.Services.AddAutoMapper(typeof(SalesService.Application.Mappings.OrderProfile));
+
     // Register Use Cases
     builder.Services.AddScoped<Application.UseCases.ICreateOrderUseCase, Application.UseCases.CreateOrderUseCase>();
     builder.Services.AddScoped<Application.UseCases.IProcessPaymentUseCase, Application.UseCases.ProcessPaymentUseCase>();
     builder.Services.AddScoped<Application.UseCases.ICancelOrderUseCase, Application.UseCases.CancelOrderUseCase>();
+        
+    // Reservation result processor
+    builder.Services.AddScoped<IReservationResultProcessor, ReservationResultProcessor>();
 
         // Add HttpClient for service-to-service communication
         builder.Services.AddHttpClient("StockService", client =>
