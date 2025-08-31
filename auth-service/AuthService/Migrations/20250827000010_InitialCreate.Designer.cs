@@ -25,7 +25,7 @@ namespace AuthService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("AuthService.Models.User", b =>
+            modelBuilder.Entity("AuthService.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

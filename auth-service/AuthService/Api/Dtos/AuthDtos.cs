@@ -38,10 +38,20 @@ public class AuthResponse
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public string? Token { get; set; }
+    // Retornamos apenas campos públicos e estritamente necessários do usuário
     public UserDto? User { get; set; }
 }
 
 public class UserDto
+{
+    // Mantemos apenas informações públicas e pequenas para reduzir o payload
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+}
+
+// DTO usado apenas para o endpoint protegido /profile
+public class FullUserDto
 {
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;

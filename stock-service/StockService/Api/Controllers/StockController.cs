@@ -4,7 +4,6 @@ using StockService.Api.Dtos;
 using StockService.Application.UseCases;
 using StockService.Application.DTOs;
 using Messaging;
-using Messaging.Events;
 
 namespace StockService.Api.Controllers;
 
@@ -126,7 +125,7 @@ public class StockController : ControllerBase
         }
     }
 
-    // POST: api/stock/products - Cria novo produto (requer autenticação de Admin)
+    // POST: api/stock/products - Cria produto (requer autenticação de Admin)
     [HttpPost("products")]
     [Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)

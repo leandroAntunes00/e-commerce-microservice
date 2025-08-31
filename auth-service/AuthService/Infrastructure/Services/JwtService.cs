@@ -21,10 +21,10 @@ public class JwtService : IJwtService
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Email, user.Email),
+            // Removido ClaimTypes.Name (username) para reduzir o payload
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim("FullName", user.FullName)
+            // Identificador único do token (útil para revogação/auditoria)
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var key = new SymmetricSecurityKey(
@@ -36,7 +36,8 @@ public class JwtService : IJwtService
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.Now.AddHours(24),
+            // Expiração reduzida — 1 hora
+            expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds
         );
 
